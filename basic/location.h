@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace ECPP::BASIC {
+namespace BASIC {
 
 struct Location {
     std::size_t line = 1;

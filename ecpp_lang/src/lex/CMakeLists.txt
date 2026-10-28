@@ -1,0 +1,3 @@
+set(LEX_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/lex.cpp" PARENT_SCOPE
+)

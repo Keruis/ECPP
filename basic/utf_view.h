@@ -1,13 +1,13 @@
 #pragma once
 
-#include "utf_char.h"
-#include "algorithms.h"
+#include "./utf_char.h"
+#include "../utility/algorithms.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
 
-namespace ECPP::BASIC {
+namespace BASIC {
 
 class UTF8View {
     public:

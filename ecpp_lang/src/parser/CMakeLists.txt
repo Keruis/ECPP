@@ -1,0 +1,3 @@
+set(PARSER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/parser.cpp" PARENT_SCOPE
+)

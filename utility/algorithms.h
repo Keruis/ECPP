@@ -2,7 +2,7 @@
 
 #include <functional>
 
-namespace ECPP::UTILITY {
+namespace UTILITY {
 
 template <auto pred = std::equal_to<>{}, typename... Ts>
 constexpr bool IsAnyOf(const auto& value, const Ts&&... candidates) noexcept((noexcept(pred(value, candidates)) && ...)) {

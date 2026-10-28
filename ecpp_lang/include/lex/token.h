@@ -1,7 +1,7 @@
 #pragma once
 
-#include "location.h"
-#include "token_kind.h"
+#include "basic/location.h"
+#include "lex/token_kind.h"
 
 #include <string>
 #include <string_view>

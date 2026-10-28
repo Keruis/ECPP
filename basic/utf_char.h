@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ECPP::BASIC {
+namespace BASIC {
 
 struct UTFChar {
     char32_t codepoint : 24;

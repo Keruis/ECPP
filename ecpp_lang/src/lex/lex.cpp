@@ -1,8 +1,7 @@
-#include "lex.h"
+#include "lex/lex.h"
 
-#include "unicode/unicode_extras.h"
-#include "unicode_char.h"
-#include "literal_support.h"
+#include "utility/unicode/unicode_extras.h"
+#include "utility/string_extras.h"
 
 namespace ECPP::PARSER {
 
@@ -63,15 +62,15 @@ void Lexer::UpdateToken(TokenClass cls, TokenType type, std::string_view text = 
     m_tok.location.length = m_source.CurPtr() - m_start;
 }
 
-void Lexer::SingleLineComment(BASIC::UTFChar c) {
+void Lexer::SkipLineComment(BASIC::UTFChar c) {
     do {
         Advance(c);
         c = Peek();
-    } while (!AtEnd() && !BASIC::IsUnicodeLineTerminator(c.codepoint)); 
+    } while (!AtEnd() && !UTILITY::IsUnicodeLineTerminator(c.codepoint)); 
     UpdatePostion();
 }
 
-void Lexer::MultiLineComment(BASIC::UTFChar c1, BASIC::UTFChar c2) {
+void Lexer::SkipBlockComment(BASIC::UTFChar c1, BASIC::UTFChar c2) {
     bool closed{};
     while (!AtEnd()) {
         c1 = Peek();
@@ -91,7 +90,7 @@ void Lexer::MultiLineComment(BASIC::UTFChar c1, BASIC::UTFChar c2) {
 BASIC::UTFChar Lexer::SkipTrivia() {
     while (!AtEnd()) {
         BASIC::UTFChar c1 = Peek();
-        if (BASIC::IsUnicodeWhitespace(c1.codepoint) || BASIC::IsUnicodeLineTerminator(c1.codepoint)) {
+        if (UTILITY::IsUnicodeWhitespace(c1.codepoint) || UTILITY::IsUnicodeLineTerminator(c1.codepoint)) {
             Advance(c1);
             continue;
         }
@@ -100,13 +99,13 @@ BASIC::UTFChar Lexer::SkipTrivia() {
         BASIC::UTFChar c2 = PeekNext();
         if (c2.codepoint == U'/') {
             Advance(c1);
-            SingleLineComment(c2);
+            SkipLineComment(c2);
             continue;
         }
         if (c2.codepoint == U'*') {
             Advance(c1);
             Advance(c2);
-            MultiLineComment(c1, c2);
+            SkipBlockComment(c1, c2);
             continue;
         }
         return c1;
@@ -172,7 +171,7 @@ void Lexer::Identifier(BASIC::UTFChar c) {
     do {
         Advance(c);
         c = Peek();
-    } while (c.codepoint == U'_' || IsXidStart(c.codepoint) || IsXidContinue(c.codepoint));
+    } while (c.codepoint == U'_' || UTILITY::IsXidStart(c.codepoint) || UTILITY::IsXidContinue(c.codepoint));
     std::string_view text{m_start, m_source.CurPtr()};
     auto type = FindKeyword(text);
     UpdateToken(
@@ -204,7 +203,7 @@ void Lexer::StringLiteral() {
     Advance(c);
     while (!AtEnd()) {
         c = Peek();
-        if (BASIC::IsUnicodeLineTerminator(c.codepoint)) [[unlikely]]
+        if (UTILITY::IsUnicodeLineTerminator(c.codepoint)) [[unlikely]]
             throw "ECPP::PARSER::Lexer::StringLiteral_1";
         if (c.codepoint == U'"') {
             Advance(c);
@@ -234,7 +233,7 @@ bool Lexer::RadixPrefix() {
     if (AtEnd() || ((Peek().codepoint | 0x20) != 'x'))
         return false;
     AdvanceCursor(1);
-    const std::size_t length = ScanNumeric<16>(m_source.CurPtr(), m_source.End());
+    const std::size_t length = UTILITY::ScanNumeric<16>(m_source.CurPtr(), m_source.End());
     if (!length)
         throw "ECPP::PARSER::Lexer::RadixPrefix";
     AdvanceCursor(length);
@@ -247,7 +246,7 @@ void Lexer::FloatLiteral(TokenType& type) {
     
     if (Peek().codepoint == '.') {
         AdvanceCursor(1);
-        AdvanceCursor(ScanNumeric<10>(m_source.CurPtr(), m_source.End()));
+        AdvanceCursor(UTILITY::ScanNumeric<10>(m_source.CurPtr(), m_source.End()));
         type = TokenType::LITERALS_FLOAT;
     }
 
@@ -261,7 +260,7 @@ void Lexer::FloatLiteral(TokenType& type) {
         AdvanceCursor(1);
 
     const char* start = m_source.CurPtr();
-    const std::size_t length = ScanNumeric<10>(start, m_source.End());
+    const std::size_t length = UTILITY::ScanNumeric<10>(start, m_source.End());
     if (!length)
         throw "ECPP::PARSER::Lexer::FloatLiteral";
     AdvanceCursor(length);
@@ -287,13 +286,13 @@ void Lexer::NumericSuffix(TokenType& type) {
             type = TokenType::LITERALS_FLOAT_SUF;
             break;
         default:
-            if (c.codepoint == U'_' || IsXidStart(c.codepoint) || IsXidContinue(c.codepoint))
+            if (c.codepoint == U'_' || UTILITY::IsXidStart(c.codepoint) || UTILITY::IsXidContinue(c.codepoint))
                 throw "ECPP::PARSER::Lexer::NumericSuffix";
             return;
     }
     
     c = Peek();
-    while (!AtEnd() && SUPPORT::IsDigit<10>(c.codepoint)) {
+    while (!AtEnd() && UTILITY::IsDigit<10>(c.codepoint)) {
         const std::uint8_t digit = c.codepoint - '0';
         if (m_tok.suffix > (255 - digit) / 10)
             throw "ECPP::PARSER::Lexer::NumericSuffix";
@@ -313,7 +312,7 @@ void Lexer::NumericLiteral(BASIC::UTFChar c) {
     AdvanceCursor(1);
     const bool is_hex = c.codepoint == U'0' && RadixPrefix();
     if (!is_hex) {
-        AdvanceCursor(ScanNumeric<10>(m_source.CurPtr(), m_source.End()));
+        AdvanceCursor(UTILITY::ScanNumeric<10>(m_source.CurPtr(), m_source.End()));
         FloatLiteral(type);
     }
 
@@ -367,7 +366,7 @@ void Lexer::NextToken() {
             return Punctuation(c);
 
         default:
-            if (c.codepoint == U'_' || IsXidStart(c.codepoint))
+            if (c.codepoint == U'_' || UTILITY::IsXidStart(c.codepoint))
                 return Identifier(c);
     }
     throw "ECPP::PARSER::Lexer::NextToken";

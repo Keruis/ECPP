@@ -1,7 +1,7 @@
 #pragma once
 
-#include "utf8_view.h"
-#include "token.h"
+#include "basic/utf_view.h"
+#include "lex/token.h"
 
 #include <cassert>
 
@@ -9,7 +9,7 @@ namespace ECPP::PARSER {
 
 class Lexer {
     public:
-        Lexer(std::string_view source)
+        Lexer(BASIC::UTF8View source)
             : m_source(source) 
         {}
 
@@ -26,8 +26,8 @@ class Lexer {
         void UpdatePostion() noexcept;
         void UpdateToken(TokenClass, TokenType, std::string_view) noexcept;
 
-        void SingleLineComment(BASIC::UTFChar);
-        void MultiLineComment(BASIC::UTFChar, BASIC::UTFChar);
+        void SkipLineComment(BASIC::UTFChar);
+        void SkipBlockComment(BASIC::UTFChar, BASIC::UTFChar);
         BASIC::UTFChar SkipTrivia();
         void EqualsSuffixOperator(BASIC::UTFChar) noexcept;
         void RepeatedCharOperator(BASIC::UTFChar) noexcept;

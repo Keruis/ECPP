@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace ECPP::SUPPORT {
+namespace UTILITY {
 
 template <std::size_t radix>
 constexpr bool IsDigit(char c) noexcept {

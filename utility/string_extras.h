@@ -1,13 +1,13 @@
 #pragma once
 
-#include "string_extras.h"
+#include "utility/char_extras.h"
 
-namespace ECPP::PARSER {
+namespace UTILITY {
 
 template <std::size_t r>
 std::size_t ScanNumeric(const char* start, const char* end) noexcept {
     auto cur = start;
-    while (cur < end && SUPPORT::IsDigit<r>(*cur))
+    while (cur < end && UTILITY::IsDigit<r>(*cur))
         cur++;
     return cur - start;
 }

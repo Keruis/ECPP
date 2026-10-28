@@ -3,7 +3,7 @@
 #include <span>
 #include <algorithm>
 
-namespace ECPP::ADT {
+namespace ADT {
 
 class UnicodeCharRange {
     public:

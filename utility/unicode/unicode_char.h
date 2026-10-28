@@ -1,10 +1,10 @@
 #pragma once
 
-#include "unicode_char_range.h"
+#include "../../ADT/unicode_char_range.h"
 
 #include <array>
 
-namespace ECPP::PARSER {
+namespace UTILITY {
 
 constexpr static std::array<ADT::UnicodeCharRange::CharRanges, 704> xid_start_range {{
     {0x0041, 0x005A},   {0x0061, 0x007A},   {0x00AA, 0x00AA},
@@ -383,15 +383,5 @@ constexpr static std::array<ADT::UnicodeCharRange::CharRanges, 410> xid_continue
     {0x1E8D0, 0x1E8D6}, {0x1E944, 0x1E94A}, {0x1E950, 0x1E959},
     {0x1FBF0, 0x1FBF9}, {0xE0100, 0xE01EF}
 }};
-
-constexpr bool IsXidStart(char32_t cp) noexcept {
-    ADT::UnicodeCharRange ranges(xid_start_range);
-    return ranges.Contains(cp);
-}
-
-constexpr bool IsXidContinue(char32_t cp) noexcept {
-    ADT::UnicodeCharRange ranges(xid_continue_range);
-    return ranges.Contains(cp);
-}
 
 }

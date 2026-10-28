@@ -50,8 +50,11 @@ class UTFCursor {
 
         UTFChar PeekNext() const {
             const UTFChar c1 = Peek();
+            const std::size_t offset = m_offset + c1.length;
+            if (m_data.data() + offset >= EndPtr())
+                return {0, 0};
             UTFChar c2;
-            if (!Decode(m_data.substr(m_offset + c1.length), c2))
+            if (!Decode(m_data.substr(offset), c2))
                 throw "BASIC::UTFCursor::PeekNext";
             return c2;
         }

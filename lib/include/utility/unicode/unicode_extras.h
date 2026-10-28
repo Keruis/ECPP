@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../algorithms.h"
-#include "utility/unicode/unicode_char.h"
+#include <ADT/unicode_char_range.h>
+#include <utility/algorithms.h>
+#include <utility/unicode/unicode_char.h>
 
 namespace UTILITY {
 

@@ -14,7 +14,8 @@ class UnicodeCharRange {
 
     public:
         constexpr UnicodeCharRange(std::span<const CharRanges> ranges)
-            : ranges(ranges) {}
+            : ranges(ranges) 
+        {}
 
         constexpr bool Contains(char32_t cp) const noexcept {
             auto it = std::ranges::lower_bound(ranges, cp, {}, &CharRanges::end);

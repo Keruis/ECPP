@@ -10,6 +10,7 @@ enum class TokenClass : std::uint8_t {
     OPERATOR,
     LITERAL,
     PUNCTUATOR,
+    UNEXPECTED_END,
     END
 };
 

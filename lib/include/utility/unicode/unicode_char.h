@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../ADT/unicode_char_range.h"
+#include <ADT/unicode_char_range.h>
 
 #include <array>
 

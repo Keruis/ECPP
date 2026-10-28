@@ -1,15 +1,13 @@
 #pragma once
 
-#include "basic/utf_view.h"
-#include "lex/token.h"
-
-#include <cassert>
+#include <lex/token.h>
+#include <basic/utf/utf_view.h>
 
 namespace ECPP::PARSER {
 
 class Lexer {
     public:
-        Lexer(BASIC::UTF8View source)
+        Lexer(BASIC::UTFCursor<char8_t>& source)
             : m_source(source) 
         {}
 
@@ -42,11 +40,11 @@ class Lexer {
         void NumericLiteral(BASIC::UTFChar);
 
     private:
-        BASIC::UTF8View m_source;
+        BASIC::UTFCursor<char8_t>& m_source;
 
         Token m_tok{};
 
-        const char* m_start{};
+        const char8_t* m_start{};
 
         std::size_t m_line_offset{};
         std::size_t m_column_offset{};

@@ -1,8 +1,7 @@
 #pragma once
 
 #include <basic/utf/utf_char.h>
-#include <basic/utf/decode.h>
-
+#include <basic/utf/encodeing.h>
 #include <cstddef>
 #include <string_view>
 
@@ -39,24 +38,19 @@ class UTFCursor {
             m_offset += offset;
         }
 
-        UTFChar Peek() const {
-            if (AtEnd())
-                return {0, 0};
+        UTFChar PeekAt(std::size_t offset) const {
             UTFChar c;
-            if (!Decode(m_data.substr(m_offset), c))
-                throw "BASIC::UTFCursor::Peek";
-            return c;
-        }
-
-        UTFChar PeekNext() const {
-            const UTFChar c1 = Peek();
-            const std::size_t offset = m_offset + c1.length;
-            if (m_data.data() + offset >= EndPtr())
-                return {0, 0};
-            UTFChar c2;
-            if (!Decode(m_data.substr(offset), c2))
-                throw "BASIC::UTFCursor::PeekNext";
-            return c2;
+            std::size_t CharOffset = m_offset;
+            while (CharOffset < m_data.size()) {
+                const std::basic_string_view<T> subview = m_data.substr(CharOffset);
+                if (!Decode(subview, c)) [[unlikely]]
+                    throw "BASIC::UTFCursor::PeekAt";
+                if (!offset)
+                    return c;
+                CharOffset += c.length;
+                offset--;
+            }
+            return {0, 0};
         }
 
     private:

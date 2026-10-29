@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace ECPP::PARSER {
+namespace ECPP::LEXER {
 
 enum class TokenClass : std::uint8_t {
     IDENTIFIER,

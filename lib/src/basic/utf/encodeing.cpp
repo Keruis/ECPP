@@ -1,4 +1,6 @@
-#include <basic/utf/decode.h>
+#include <basic/utf/encodeing.h>
+
+#include <string>
 #include <string_view>
 
 namespace BASIC {
@@ -79,6 +81,69 @@ bool Decode<char32_t>(const std::u32string_view chars, UTFChar &c) noexcept {
     if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))
         return false;
     c = {cp, 1};
+    return true;
+}
+
+template <>
+bool Encode<char8_t>(char32_t cp, std::u8string& str) noexcept {
+    std::size_t length = 0;
+    char8_t bytes[4];
+    switch (cp) {
+        case 0x00 ... 0x7F:
+            length = 1;
+            bytes[0] = static_cast<char8_t>(cp);
+            break;
+        case 0x80 ... 0x7FF:
+            length = 2;
+            bytes[0] = (cp >> 6) | 0xC0;
+            bytes[1] = (cp & 0x3F) | 0x80;
+            break;
+        case 0xD800 ... 0xDFFF:
+            return false;
+        case 0x800 ... 0xD7FF:
+        case 0xE000 ... 0xFFFF:
+            length = 3;
+            bytes[0] = (cp >> 12) | 0xE0;
+            bytes[1] = ((cp >> 6) & 0x3F) | 0x80;
+            bytes[2] = (cp & 0x3F) | 0x80;
+            break;
+        case 0x10000 ... 0x10FFFF:
+            length = 4;
+            bytes[0] = (cp >> 18) | 0xF0;
+            bytes[1] = ((cp >> 12) & 0x3F) | 0x80;
+            bytes[2] = ((cp >> 6) & 0x3F) | 0x80;
+            bytes[3] = (cp & 0x3F) | 0x80;
+            break;
+        default:
+            return false;
+    }
+    str.append(bytes, length);
+    return true;
+}
+
+template <>
+bool Encode<char16_t>(char32_t cp, std::u16string& str) noexcept {
+    switch (cp) {
+        case 0x00 ... 0xD7FF:
+        case 0xE000 ... 0xFFFF:
+            str.push_back(static_cast<char16_t>(cp));
+            return true;
+        case 0x10000 ... 0x10FFFF: {
+            const char32_t value = cp - 0x10000;
+            str.push_back((value >> 10) + 0xD800);
+            str.push_back((value & 0x3FF) + 0xDC00);
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
+template <>
+bool Encode<char32_t>(char32_t cp, std::u32string& str) noexcept {
+    if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))
+        return false;
+    str.push_back(cp);
     return true;
 }
 

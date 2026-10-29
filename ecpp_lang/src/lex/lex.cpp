@@ -1,12 +1,19 @@
-#include <config.h>
+#include <cstddef>
 #include <lex/lex.h>
-#include <utility/unicode/unicode_extras.h>
+
+#include <config.h>
+#include <lex/string_literal.h>
 #include <basic/string_extras.h>
-#include <print>
-namespace ECPP::PARSER {
+#include <basic/unicode/unicode_extras.h>
+
+namespace ECPP::LEXER {
 
 const Token& Lexer::RefTok() const noexcept {
     return m_tok;
+}
+
+const BASIC::Location& Lexer::Location() const noexcept {
+    return m_location;
 }
 
 bool Lexer::AtEnd() const noexcept {
@@ -14,11 +21,11 @@ bool Lexer::AtEnd() const noexcept {
 }
 
 BASIC::UTFChar Lexer::Peek() const {
-    return m_source.Peek();
+    return m_source.PeekAt(0);
 }
 
 BASIC::UTFChar Lexer::PeekNext() const {
-    return m_source.PeekNext();
+    return m_source.PeekAt(1);
 }
 
 void Lexer::Advance(BASIC::UTFChar c) noexcept {
@@ -47,26 +54,26 @@ void Lexer::AdvanceColumn(std::size_t offset) noexcept {
 }
 
 void Lexer::UpdatePostion() noexcept {
-    m_tok.location.line += m_line_offset;
-    m_tok.location.column = m_line_offset 
+    m_location.line += m_line_offset;
+    m_location.column = m_line_offset 
         ? 1 + m_column_offset
-        : m_tok.location.column + m_column_offset;
+        : m_location.column + m_column_offset;
     m_line_offset = 0;
     m_column_offset = 0;
 }
 
-void Lexer::UpdateToken(TokenClass cls, TokenType type, std::string_view text = {}) noexcept {
+void Lexer::UpdateToken(TokenClass cls, TokenType type, std::u8string_view text = {}) noexcept {
     m_tok.cls = cls;
     m_tok.type = type;
     m_tok.text = text;
-    m_tok.location.length = m_source.CurPtr() - m_start;
+    m_length = m_source.CurPtr() - m_start;
 }
 
 void Lexer::SkipLineComment(BASIC::UTFChar c) {
     do {
         Advance(c);
         c = Peek();
-    } while (!AtEnd() && !UTILITY::IsUnicodeLineTerminator(c.codepoint)); 
+    } while (!AtEnd() && !BASIC::IsHorizontalWhitespace(c.codepoint)); 
     UpdatePostion();
 }
 
@@ -90,7 +97,7 @@ void Lexer::SkipBlockComment(BASIC::UTFChar c1, BASIC::UTFChar c2) {
 BASIC::UTFChar Lexer::SkipTrivia() {
     while (!AtEnd()) {
         BASIC::UTFChar c1 = Peek();
-        if (UTILITY::IsUnicodeWhitespace(c1.codepoint) || UTILITY::IsUnicodeLineTerminator(c1.codepoint)) {
+        if (BASIC::IsHorizontalWhitespace(c1.codepoint) || BASIC::IsVerticalWhitespace(c1.codepoint)) {
             Advance(c1);
             continue;
         }
@@ -155,14 +162,14 @@ void Lexer::Punctuation(BASIC::UTFChar c) noexcept {
     );
 }
 
-TokenType Lexer::FindKeyword(std::string_view text) const noexcept {
-    if (text == "if")
+TokenType Lexer::FindKeyword(std::u8string_view text) const noexcept {
+    if (text == u8"if")
         return TokenType::KEYWORD_IF;
-    if (text == "else")
+    if (text == u8"else")
         return TokenType::KEYWORD_ELSE;
-    if (text == "true")
+    if (text == u8"true")
         return TokenType::KEYWORD_TRUE;
-    if (text == "false")
+    if (text == u8"false")
         return TokenType::KEYWORD_FALSE;
     return TokenType::IDENTIFIER;
 }
@@ -171,28 +178,14 @@ void Lexer::Identifier(BASIC::UTFChar c) {
     do {
         Advance(c);
         c = Peek();
-    } while (c.codepoint == U'_' || UTILITY::IsXidStart(c.codepoint) || UTILITY::IsXidContinue(c.codepoint));
-    std::string_view text{reinterpret_cast<const char*>(m_start), reinterpret_cast<const char*>(m_source.CurPtr())};
+    } while (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint) || BASIC::IsXidContinue(c.codepoint));
+    std::u8string_view text{m_start, m_source.CurPtr()};
     auto type = FindKeyword(text);
     UpdateToken(
         type != TokenType::IDENTIFIER ? TokenClass::KEYWORD : TokenClass::IDENTIFIER, 
         type, 
         text
     );
-}
-
-void Lexer::Escape(BASIC::UTFChar c) noexcept {
-    auto& character = m_tok.character;
-    switch (c.codepoint) {
-        case U'n': character = '\n'; break;
-        case U'r': character = '\r'; break;
-        case U't': character = '\t'; break;
-        case U'v': character = '\v'; break;
-        case U'a': character = '\a'; break;
-        case U'b': character = '\b'; break;
-        default:
-            character = c.codepoint;
-    }
 }
 
 void Lexer::StringLiteral() {
@@ -203,7 +196,7 @@ void Lexer::StringLiteral() {
     Advance(c);
     while (!AtEnd()) {
         c = Peek();
-        if (UTILITY::IsUnicodeLineTerminator(c.codepoint)) [[unlikely]]
+        if (BASIC::IsVerticalWhitespace(c.codepoint)) [[unlikely]]
             throw "ECPP::PARSER::Lexer::StringLiteral_1";
         if (c.codepoint == U'"') {
             Advance(c);
@@ -212,7 +205,7 @@ void Lexer::StringLiteral() {
                 type
             );
             if (type == TokenType::LITERALS_STRING_VIEW)
-                m_tok.text = {reinterpret_cast<const char*>(m_start) + 1, reinterpret_cast<const char*>(m_source.CurPtr()) - 1};
+                m_tok.text = {m_start + 1, m_source.CurPtr() - 1};
             return;
         }
         if (c.codepoint == U'\\') {
@@ -220,9 +213,10 @@ void Lexer::StringLiteral() {
                 str.assign(m_start + 1, m_source.CurPtr());
             type = TokenType::LITERALS_STRING;
             Advance(c);
-            c = Peek();
-            Escape(c);
-            str.push_back(character);
+            StringLiteralParser par{m_source, m_tok.str};
+            const std::size_t length = par.ParserEscape();
+            AdvanceCursor(length);
+            AdvanceColumn(length);
         }
         Advance(c);
     }
@@ -233,7 +227,7 @@ bool Lexer::RadixPrefix() {
     if (AtEnd() || ((Peek().codepoint | 0x20) != U'x'))
         return false;
     AdvanceCursor(1);
-    const std::size_t length = BASIC::ScanNumeric<16>(m_source.CurPtr(), m_source.EndPtr());
+    const std::size_t length = BASIC::ScanNumeric(m_source.CurPtr(), m_source.EndPtr(), 16);
     if (!length)
         throw "ECPP::PARSER::Lexer::RadixPrefix";
     AdvanceCursor(length);
@@ -246,7 +240,7 @@ void Lexer::FloatLiteral(TokenType& type) {
 
     if (Peek().codepoint == U'.') {
         AdvanceCursor(1);
-        AdvanceCursor(BASIC::ScanNumeric<10>(m_source.CurPtr(), m_source.EndPtr()));
+        AdvanceCursor(BASIC::ScanNumeric(m_source.CurPtr(), m_source.EndPtr(), 10));
         type = TokenType::LITERALS_FLOAT;
     }
 
@@ -260,7 +254,7 @@ void Lexer::FloatLiteral(TokenType& type) {
         AdvanceCursor(1);
 
     const char8_t* start = m_source.CurPtr();
-    const std::size_t length = BASIC::ScanNumeric<10>(start, m_source.EndPtr());
+    const std::size_t length = BASIC::ScanNumeric(start, m_source.EndPtr(), 10);
     if (!length)
         throw "ECPP::PARSER::Lexer::FloatLiteral";
     AdvanceCursor(length);
@@ -286,13 +280,13 @@ void Lexer::NumericSuffix(TokenType& type) {
             type = TokenType::LITERALS_FLOAT_SUF;
             break;
         default:
-            if (c.codepoint == U'_' || UTILITY::IsXidStart(c.codepoint) || UTILITY::IsXidContinue(c.codepoint))
+            if (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint) || BASIC::IsXidContinue(c.codepoint))
                 throw "ECPP::PARSER::Lexer::NumericSuffix";
             return;
     }
     
     c = Peek();
-    while (!AtEnd() && BASIC::IsDigit<10>(static_cast<char8_t>(c.codepoint))) {
+    while (!AtEnd() && BASIC::IsDigit(c.codepoint, 10)) {
         const std::uint8_t digit = c.codepoint - U'0';
         if (m_tok.suffix > (255 - digit) / 10)
             throw "ECPP::PARSER::Lexer::NumericSuffix";
@@ -312,7 +306,7 @@ void Lexer::NumericLiteral(BASIC::UTFChar c) {
     AdvanceCursor(1);
     const bool is_hex = c.codepoint == U'0' && RadixPrefix();
     if (!is_hex) {
-        AdvanceCursor(BASIC::ScanNumeric<10>(m_source.CurPtr(), m_source.EndPtr()));
+        AdvanceCursor(BASIC::ScanNumeric(m_source.CurPtr(), m_source.EndPtr(), 10));
         FloatLiteral(type);
     }
 
@@ -322,7 +316,7 @@ void Lexer::NumericLiteral(BASIC::UTFChar c) {
     UpdateToken(
         TokenClass::LITERAL,
         type,
-        {reinterpret_cast<const char*>(m_start), consumed - suffix_length}
+        {m_start, consumed - suffix_length}
     );
     AdvanceColumn(consumed);
 }
@@ -336,7 +330,7 @@ void Lexer::NextToken() {
             TokenClass::UNEXPECTED_END,
             TokenType::END
         );
-        m_tok.location.length = 0;
+        m_length = 0;
         return;
     }
 
@@ -366,7 +360,7 @@ void Lexer::NextToken() {
             return Punctuation(c);
 
         default:
-            if (c.codepoint == U'_' || UTILITY::IsXidStart(c.codepoint))
+            if (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint))
                 return Identifier(c);
     }
     if ((m_source.EndPtr() - m_source.CurPtr()) >= ScriptEndDelimiter.size()) {
@@ -375,7 +369,7 @@ void Lexer::NextToken() {
                 TokenClass::END,
                 TokenType::END
             );
-            m_tok.location.length = 0;
+            m_length = 0;
             return;
         }
     }

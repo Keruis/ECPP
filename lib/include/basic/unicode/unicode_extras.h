@@ -2,17 +2,9 @@
 
 #include <ADT/unicode_char_range.h>
 #include <utility/algorithms.h>
-#include <utility/unicode/unicode_char.h>
+#include <basic/unicode/unicode_char.h>
 
-namespace UTILITY {
-
-constexpr bool IsUnicodeWhitespace(char32_t cp) noexcept {
-    return UTILITY::IsAnyOf(cp, U' ', U'\t', U'\v', U'\f');
-}
-
-constexpr bool IsUnicodeLineTerminator(char32_t cp) noexcept {
-    return UTILITY::IsAnyOf(cp, U'\n', U'\r');
-}
+namespace BASIC {
 
 constexpr bool IsXidStart(char32_t cp) noexcept {
     ADT::UnicodeCharRange ranges(xid_start_range);

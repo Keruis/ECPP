@@ -10,15 +10,16 @@ namespace ECPP {
 class ECPP {
     public:
         void Test() {
-            std::u8string_view text = u8"@ScriptEnd";
+            std::u8string_view text = u8"\"123\\d{97}\"";
             BASIC::UTFCursor<char8_t> cursor{text};
-            PARSER::Lexer lex{cursor};
+            BASIC::Location location{};
+            LEXER::Lexer lex{cursor, location};
             try {
                 lex.NextToken();
             } catch (const char* p) {
                 std::println("{}", p);
             }
-            std::println("{}", static_cast<std::uint8_t>(lex.RefTok().cls));
+            std::println("{}", std::string_view{reinterpret_cast<const char*>(lex.RefTok().str.data()), lex.RefTok().str.size()});
         }
 
     private:

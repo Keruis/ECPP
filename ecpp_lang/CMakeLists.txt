@@ -11,6 +11,7 @@ target_compile_features(ecpp_lang PRIVATE cxx_std_23)
 target_include_directories(ecpp_lang 
 PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "${PROJECT_SOURCE_DIR}/config"
 
 PRIVATE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"

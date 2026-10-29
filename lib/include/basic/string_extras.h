@@ -1,15 +1,15 @@
 #pragma once
 
 #include <basic/char_extras.h>
+#include <cstddef>
+#include <utility/integer_extras.h>
+
+#include <cassert>
 
 namespace BASIC {
 
-template <std::size_t r>
-std::size_t ScanNumeric(const char8_t* start, const char8_t* end) noexcept {
-    auto cur = start;
-    while (cur < end && IsDigit<r>(*cur))
-        cur++;
-    return cur - start;
-}
+std::size_t ScanNumeric(const char8_t*, const char8_t*, std::size_t) noexcept;
+
+std::size_t IntegerStringToNumeric(const char8_t*, const char8_t*, bool&, std::size_t, std::size_t) noexcept;
 
 }

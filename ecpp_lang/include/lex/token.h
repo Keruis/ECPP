@@ -6,10 +6,10 @@
 #include <string>
 #include <string_view>
 
-namespace ECPP::PARSER {
+namespace ECPP::LEXER {
 
-constexpr static std::uint8_t repeated_char_operator_offset = 90;
-constexpr static std::uint8_t equals_suffix_operator_offset = 95;
+constexpr std::uint8_t repeated_char_operator_offset = 90;
+constexpr std::uint8_t equals_suffix_operator_offset = 95;
 
 enum class TokenType : std::uint8_t {
     IDENTIFIER = 0,
@@ -73,21 +73,22 @@ enum class TokenType : std::uint8_t {
 
     LITERALS_CHARACTER = 226,
 
+    UNEXPECTED_END = 254,
     END = 255
 };
 
 struct Token {
-    TokenClass cls = TokenClass::END;
-    TokenType type = TokenType::END;
+    TokenClass cls = TokenClass::UNEXPECTED_END;
+    TokenType type = TokenType::UNEXPECTED_END;
 
-    std::string str{};
-    std::string_view text{};
+    std::u8string str{};
+    std::u8string_view text{};
 
     std::uint8_t suffix{};
 
     char32_t character{};
 
-    BASIC::Location location{};
+    std::size_t length{};
 };
 
 }

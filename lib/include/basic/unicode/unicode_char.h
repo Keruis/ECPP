@@ -4,7 +4,7 @@
 
 #include <array>
 
-namespace UTILITY {
+namespace BASIC {
 
 constexpr static std::array<ADT::UnicodeCharRange::CharRanges, 704> xid_start_range {{
     {0x0041, 0x005A},   {0x0061, 0x007A},   {0x00AA, 0x00AA},

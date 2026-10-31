@@ -10,7 +10,7 @@ namespace ECPP {
 class ECPP {
     public:
         void Test() {
-            std::u8string_view text = u8"\"123\\d{97}\"";
+            std::u8string_view text = u8"\"1\\n23\\u{1F600}\"";
             BASIC::UTFCursor<char8_t> cursor{text};
             BASIC::Location location{};
             LEXER::Lexer lex{cursor, location};

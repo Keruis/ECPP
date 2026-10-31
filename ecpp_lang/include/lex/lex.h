@@ -33,7 +33,6 @@ class Lexer {
         void Punctuation(BASIC::UTFChar) noexcept;
         void Identifier(BASIC::UTFChar);
         TokenType FindKeyword(std::u8string_view) const noexcept;
-        void Escape(BASIC::UTFChar) noexcept;
         void StringLiteral();
         bool RadixPrefix();
         void FloatLiteral(TokenType&);

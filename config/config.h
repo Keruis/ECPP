@@ -4,7 +4,7 @@
 
 namespace ECPP {
 
-constexpr std::string_view ScriptStartDelimiter = "@ScriptStart";
-constexpr std::string_view ScriptEndDelimiter = "@ScriptEnd";
+constexpr std::u8string_view ScriptStartDelimiter = u8"@ScriptStart";
+constexpr std::u8string_view ScriptEndDelimiter = u8"@ScriptEnd";
     
 }

@@ -30,6 +30,10 @@ class UTFCursor {
             return CurPtr() >= EndPtr();
         }
 
+        bool HasRemaining(std::size_t size) const noexcept {
+            return EndPtr() - CurPtr() >= size;
+        }
+
         bool Empty() const noexcept {
             return m_data.empty();
         }

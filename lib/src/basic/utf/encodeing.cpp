@@ -29,7 +29,7 @@ bool Decode<char8_t>(const std::u8string_view chars, UTFChar& c) noexcept {
                 return false;
             const char8_t second = chars[1];
             const char8_t third = chars[2];
-            if ((first == 0xE0 && (second < 0xA0)) || (first == 0xED && (second > 0x9F)) || UTILITY::IsAnyOf(0x80, second & 0xC0, third & 0xC0)) 
+            if ((first == 0xE0 && (second < 0xA0)) || (first == 0xED && (second > 0x9F)) || UTILITY::IsAllOf(0x80, second & 0xC0, third & 0xC0)) 
                 return false;
             const char32_t cp = ((first & 0x0F) << 12) | ((second & 0x3F) << 6) | (third & 0x3F);
             c = {cp, 3};
@@ -41,7 +41,7 @@ bool Decode<char8_t>(const std::u8string_view chars, UTFChar& c) noexcept {
             const char8_t second = chars[1];
             const char8_t third = chars[2];
             const char8_t fourth = chars[3];
-            if ((first == 0xF0 && (second < 0x90)) || (first == 0xF0 && second < 0x90) || (first == 0xF4 && (second > 0x8F)) || UTILITY::IsAnyOf(0x80, second & 0xC0, third & 0xC0, fourth & 0xC0))
+            if ((first == 0xF0 && (second < 0x90)) || (first == 0xF4 && (second > 0x8F)) || UTILITY::IsAllOf(0x80, second & 0xC0, third & 0xC0, fourth & 0xC0))
                 return false;
             const char32_t cp = ((first & 0x07) << 18) | ((second & 0x3F) << 12) | ((third & 0x3F) << 6) | (fourth & 0x3F);
             c = {cp, 4};
@@ -85,7 +85,7 @@ bool Decode<char32_t>(const std::u32string_view chars, UTFChar &c) noexcept {
 }
 
 template <>
-bool Encode<char8_t>(char32_t cp, std::u8string& str) noexcept {
+bool Encode<char8_t>(char32_t cp, std::u8string& str) {
     std::size_t length = 0;
     char8_t bytes[4];
     switch (cp) {
@@ -122,7 +122,7 @@ bool Encode<char8_t>(char32_t cp, std::u8string& str) noexcept {
 }
 
 template <>
-bool Encode<char16_t>(char32_t cp, std::u16string& str) noexcept {
+bool Encode<char16_t>(char32_t cp, std::u16string& str) {
     switch (cp) {
         case 0x00 ... 0xD7FF:
         case 0xE000 ... 0xFFFF:
@@ -140,7 +140,7 @@ bool Encode<char16_t>(char32_t cp, std::u16string& str) noexcept {
 }
 
 template <>
-bool Encode<char32_t>(char32_t cp, std::u32string& str) noexcept {
+bool Encode<char32_t>(char32_t cp, std::u32string& str) {
     if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))
         return false;
     str.push_back(cp);

@@ -1,12 +1,15 @@
 #include <basic/string_extras.h>
 
+#include <cassert>
+
 namespace BASIC {
 
 std::size_t ScanNumeric(const char8_t* start, const char8_t* end, std::size_t radix) noexcept {
-    auto cur = start;
-    while (cur < end && IsDigit(static_cast<char32_t>(*cur), radix))
-        cur++;
-    return cur - start;
+    return ScanWhile<
+        [](const char8_t c, std::size_t r)noexcept {
+            return IsDigit(static_cast<char32_t>(c), r);
+        }
+    >(start, end, radix);
 }
 
 std::size_t IntegerStringToNumeric(const char8_t* start, const char8_t* end, bool& overflow, std::size_t max, std::size_t radix) noexcept {

@@ -3,8 +3,6 @@
 #include <basic/utf/utf_view.h>
 #include <basic/location.h>
 
-#include <string>
-
 namespace ECPP::LEXER {
 
 class StringLiteralParser {
@@ -18,13 +16,16 @@ class StringLiteralParser {
     private:
         char32_t Peek() const;
         char32_t PeekNext() const;
-        char32_t PeekAt(std::size_t) const;
+        char32_t PeekAt(const std::size_t) const;
 
-        void AppendCodepoint(char32_t);
-        std::size_t ProcessCharEscape();
-        std::size_t ProcessNumericEscape();
-        std::size_t ProcessNumericUCNEscape();
-        std::size_t ProcessNameUCNEscape();
+        void AppendCodepoint(const char32_t);
+        std::size_t GetEsacpeRadix(const char32_t) const noexcept;
+        char32_t GetEscapeChar(const char32_t) const;
+        char32_t UnicodeNameToCodepoint(std::u8string_view) const;
+        std::size_t ProcessCharEscape(char32_t&);
+        std::size_t ProcessNumericEscape(char32_t&, const std::size_t);
+        std::size_t ProcessNumericUCNEscape(char32_t&);
+        std::size_t ProcessNameUCNEscape(char32_t&);
 
     private:
         std::u8string& m_str;

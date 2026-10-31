@@ -11,6 +11,6 @@ template <typename T>
 bool Decode(const std::basic_string_view<T>, UTFChar&) noexcept;
 
 template <typename T>
-bool Encode(char32_t, std::basic_string<T>&) noexcept;
+bool Encode(char32_t, std::basic_string<T>&);
     
 }

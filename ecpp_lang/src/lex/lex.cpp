@@ -122,7 +122,7 @@ BASIC::UTFChar Lexer::SkipTrivia() {
 }
 
 void Lexer::EqualsSuffixOperator(BASIC::UTFChar c) noexcept {
-    const bool equals_suffix = ((m_source.EndPtr() - m_source.CurPtr()) >= 2) && m_source.CurPtr()[1] == U'=';
+    const bool equals_suffix = m_source.HasRemaining(2) && m_source.CurPtr()[1] == U'=';
     const std::size_t offset = 1 + equals_suffix;
     AdvanceCursor(offset);
     AdvanceColumn(offset);
@@ -137,7 +137,7 @@ void Lexer::EqualsSuffixOperator(BASIC::UTFChar c) noexcept {
 
 void Lexer::RepeatedCharOperator(BASIC::UTFChar c) noexcept {
     char next_char = 0;
-    if (m_source.EndPtr() - m_source.CurPtr() >= 2)
+    if (m_source.HasRemaining(2))
         next_char = m_source.CurPtr()[1];
     const bool repeat = next_char == c.codepoint;
     const bool equals_suffix = next_char == U'=';
@@ -217,7 +217,10 @@ void Lexer::StringLiteral() {
             const std::size_t length = par.ParserEscape();
             AdvanceCursor(length);
             AdvanceColumn(length);
+            continue;
         }
+        if (type == TokenType::LITERALS_STRING)
+            str.append(m_source.CurPtr(), c.length);
         Advance(c);
     }
     throw "ECPP::PARSER::Lexer::StringLiteral_2";
@@ -363,8 +366,8 @@ void Lexer::NextToken() {
             if (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint))
                 return Identifier(c);
     }
-    if ((m_source.EndPtr() - m_source.CurPtr()) >= ScriptEndDelimiter.size()) {
-        if (std::string_view{reinterpret_cast<const char*>(m_source.CurPtr()), ScriptEndDelimiter.size()} == ScriptEndDelimiter) {
+    if (m_source.HasRemaining(ScriptEndDelimiter.size())) {
+        if (std::u8string_view{m_source.CurPtr(), ScriptEndDelimiter.size()} == ScriptEndDelimiter) {
             UpdateToken( 
                 TokenClass::END,
                 TokenType::END

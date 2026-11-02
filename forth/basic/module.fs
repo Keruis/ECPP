@@ -1,11 +1,12 @@
 INCLUDE cc.fs
+INCLUDE fail.fs
 
 32 CONSTANT MAX_MOD_DEPTH
 
 : (RefillInput) ( -- )
     REFILL 0= 
     IF
-        CR ." END OF IMPUT" CR ABORT
+        S" END OF IMPUT" Fail
     THEN
 ;
 
@@ -55,11 +56,16 @@ INCLUDE cc.fs
     2 + CELLS +
 ;
 
+: (AddSearchWid) ( wid -- )
+    >R
+    GET-ORDER 1+
+    R> SWAP SET-ORDER
+;
+
 : (AddModuleDepth) ( mod-addr base-addr -- )
     DUP (GetModuleCount) DUP @
     DUP MAX_MOD_DEPTH >= IF
-        CR ." MODULE ERR: MODULE DEPENDENCY LIMIT EXCEEDED"
-        CR ABORT
+        S" MODULE ERR: MODULE DEPENDENCY LIMIT EXCEEDED" Fail
     THEN
 
     DUP 1+ ROT !
@@ -77,7 +83,7 @@ INCLUDE cc.fs
         EXIT
     THEN
     DROP
-    CR ." MODULE [" type ." ] NOT FOUND" CR ABORT 
+    S" MODULE [" 2SWAP S+ S" ] NOT FOUND" S+ Fail 
 ;
 
 : (GetModuleList) ( base-addr -- wid...u u )
@@ -94,13 +100,16 @@ INCLUDE cc.fs
     GET-CURRENT
     WORDLIST DUP (CreateModuleList)
     WORDLIST DUP SET-CURRENT
-    >R GET-ORDER 1+ R> SWAP SET-ORDER
+    2 PICK (AddSearchWid)
+    (AddSearchWid)
 ;
 
 : EndModule ( old-wid pub-wid base-addr -- )
+    2DROP SET-CURRENT
+    GET-ORDER
+    2 - >R
     2DROP
-    SET-CURRENT
-    GET-ORDER 1- NIP SET-ORDER
+    R> SET-ORDER
 ;
 
 : Export ( pub-wid base-addr -- pub-wid base-addr )
@@ -132,7 +141,7 @@ INCLUDE cc.fs
         EXIT
     THEN
 
-    CR ." MODULE ERR: [EXPORT " TYPE ." ] INVALID SYNTAX" CR
+    S" MODULE ERR: [EXPORT " 2SWAP S+ S" ] INVALID SYNTAX" S+ Fail 
     ABORT
 ;
 

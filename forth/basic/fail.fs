@@ -1,3 +1,3 @@
 : Fail ( c-addr u -- )
-    CR ." ERROR: " TYPE CR ABORT
+    CR ." Error: " TYPE CR ABORT
 ;

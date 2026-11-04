@@ -1,4 +1,4 @@
-INCLUDE basic/module.fs
+REQUIRE basic/module.fs
 
 BeginModule StringExtras
 

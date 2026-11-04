@@ -1,4 +1,4 @@
-INCLUDE basic/module.fs
+REQUIRE basic/module.fs
 
 BeginModule CharExtras
 
@@ -79,6 +79,15 @@ Export : Letter? ( c -- f )
 
 Export : Alnum? ( c -- f )
     CharInfoTable + c@ Lowercase Uppercase Digit10 OR OR HasAnyFlag
+;
+
+Export : CharToDigit ( c radix -- u )
+    SWAP >R R@
+    48 - SWAP
+    R@ 0x20 OR
+    39 - R> - 
+    SWAP 10 >=
+    AND +
 ;
 
 EndModule

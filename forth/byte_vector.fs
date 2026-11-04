@@ -1,74 +1,99 @@
-INCLUDE basic/module.fs
+REQUIRE vector.fs
+REQUIRE algorithm.fs
 
-BeginModule ByteVector
+Import Vector
+Import Algorithm
++
 
-Export : BVData ( bv-addr -- a-addr )
-    @
-;
+BeginModule ByteVectorModule
 
-Export : BVLength ( bv-addr -- u )
-    CELL+ @
-;
+Export Import Vector
+Export Import Algorithm
 
-Export : BVCapacity ( bv-addr -- u )
-    2 CELLS + @
-;
+BeginElementType ByteElement
+    1 ElementSize
+    1 ElementAlignment
+    RawCopyable
+    RawRelocatable
+EndElementType
 
-: BVEnsure ( u bv-addr -- )
-    >R R@ BVCapacity 2DUP <=
-    IF 
-        2DROP RDROP
-        EXIT
-    THEN
+DefineVectorType ByteVector ByteElement
 
-    2* 16 MAX MAX DUP
-    R@ BVData ?DUP
-    IF
-        SWAP RESIZE THROW
-    ELSE
-        ALLOCATE THROW
-    THEN
-
-    R@ !
-    R> 2 CELLS + !
-;
-
-Export : BVNew ( -- bv-addr )
-    3 CELLS ALLOCATE THROW
-    DUP 3 CELLS ERASE
-;
-
-Export : BVAppendSlice ( bv-addr a-addr u -- )
-    ROT >R DUP 0= 
-    IF
-        2DROP
-        R> DROP
-        EXIT
-    THEN
-
-    DUP R@ BVLength +
-    DUP R@ BVEnsure
-    R@ BVData
-    R@ BVLength
-    SWAP +
-    1 PICK R@ CELL+ !
-    NIP SWAP MOVE
+: (BYTE-SWAP) ( address1 address2 -- )
+    >R
+    DUP C@
+    R@ C@
+    SWAP
+    R@ C!
+    SWAP C!
     R> DROP
 ;
 
-Export : BVAppend ( bv-addr c -- )
-    SWAP >R R@ BVLength 1+  
-    DUP R@ BVEnsure
-    DUP R@ CELL+ !
-    R> BVData + c!
+ContiguousIteratorCategory
+BeginIteratorType ByteVectorAlgorithmIterator
+    ByteVectorIterator IteratorTypeNextXt UseIteratorNext
+    ByteVectorIterator IteratorTypePrevXt UseIteratorPrev
+    ByteVectorIterator IteratorTypeAdvanceXt UseIteratorAdvance
+    ByteVectorIterator IteratorTypeDistanceXt UseIteratorDistance
+    ByteVectorIterator IteratorTypeLessXt UseIteratorLess
+    ByteVectorIterator IteratorTypeReadXt UseIteratorRead
+    ByteVectorIterator IteratorTypeWriteXt UseIteratorWrite
+    ByteVectorIterator IteratorTypeEqualXt UseIteratorEqual
+    ByteVectorIterator IteratorTypeSentinelEqualXt UseIteratorSentinelEqual
+    ByteVectorIterator IteratorTypeBeginXt UseIteratorBegin
+    ByteVectorIterator IteratorTypeEndXt UseIteratorEnd
+    ' (BYTE-SWAP) UseIteratorSwap
+EndIteratorType
+
+DefineAlgorithmOps ByteVectorOps ByteVectorAlgorithmIterator
+
+: BytePositive? ( byte-address -- flag )
+    C@ 0>
 ;
 
-Export : BVFree ( bv-addr -- )
-    DUP BVData ?DUP IF
-        FREE THROW
-    THEN
-    FREE THROW
+: ByteZero? ( byte-address -- flag )
+    C@ 0=
 ;
 
+: ByteEqual? ( left-address right-address -- flag )
+    C@ SWAP C@ =
+;
+
+: ByteLess? ( left-address right-address -- flag )
+    C@ SWAP C@ >
+;
+
+: ByteAdd ( accumulator byte-address -- accumulator )
+    C@ +
+;
+
+: ByteIncrementInto ( source-address destination-address -- )
+    SWAP C@ 1+ SWAP C!
+;
+
+' BytePositive? ByteVectorOps DefineAllOf ByteVectorAlgorithm.AllOf
+' BytePositive? ByteVectorOps DefineAnyOf ByteVectorAlgorithm.AnyOf
+' BytePositive? ByteVectorOps DefineNoneOf ByteVectorAlgorithm.NoneOf
+' BytePositive? ByteVectorOps DefineCountIf ByteVectorAlgorithm.CountIf
+' BytePositive? ByteVectorOps DefineFindIf ByteVectorAlgorithm.FindIfPositive
+' ByteZero? ByteVectorOps DefineFindIf ByteVectorAlgorithm.FindZero
+
+' ByteEqual? ByteVectorOps DefineFind ByteVectorAlgorithm.Find
+' ByteEqual? ByteVectorOps ByteVectorOps DefineEqual ByteVectorAlgorithm.Equal
+' ByteEqual? ByteVectorOps ByteVectorOps DefineMismatch ByteVectorAlgorithm.Mismatch
+' ByteEqual? ByteVectorOps ByteVectorOps DefineSearch ByteVectorAlgorithm.Search
+' ByteLess? ByteVectorOps DefineLowerBound ByteVectorAlgorithm.LowerBound
+' ByteLess? ByteVectorOps DefineUpperBound ByteVectorAlgorithm.UpperBound
+
+ByteVectorOps ByteVectorOps DefineCopy ByteVectorAlgorithm.Copy
+ByteVectorOps ByteVectorOps DefineCopyN ByteVectorAlgorithm.CopyN
+ByteVectorOps DefineFill ByteVectorAlgorithm.Fill
+' ByteIncrementInto ByteVectorOps ByteVectorOps DefineTransform ByteVectorAlgorithm.Increment
+' ByteAdd ByteVectorOps DefineAccumulate ByteVectorAlgorithm.Sum
+' ByteLess? ByteVectorOps DefineMinElement ByteVectorAlgorithm.MinElement
+' ByteLess? ByteVectorOps DefineMaxElement ByteVectorAlgorithm.MaxElement
+ByteVectorOps DefineReverse ByteVectorAlgorithm.Reverse
 
 EndModule
+
+EndImport

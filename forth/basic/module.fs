@@ -1,12 +1,12 @@
-INCLUDE cc.fs
-INCLUDE fail.fs
+REQUIRE cc.fs
+REQUIRE fail.fs
 
 32 CONSTANT MAX_MOD_DEPTH
 
 : (RefillInput) ( -- )
     REFILL 0= 
     IF
-        S" END OF IMPUT" Fail
+        S" End Of Input" Fail
     THEN
 ;
 
@@ -65,7 +65,7 @@ INCLUDE fail.fs
 : (AddModuleDepth) ( mod-addr base-addr -- )
     DUP (GetModuleCount) DUP @
     DUP MAX_MOD_DEPTH >= IF
-        S" MODULE ERR: MODULE DEPENDENCY LIMIT EXCEEDED" Fail
+        S" Module Err: Module Dependency Limit Exceeed" Fail
     THEN
 
     DUP 1+ ROT !
@@ -83,7 +83,7 @@ INCLUDE fail.fs
         EXIT
     THEN
     DROP
-    S" MODULE [" 2SWAP S+ S" ] NOT FOUND" S+ Fail 
+    S" Module [" 2SWAP S+ S" ] Not Found" S+ Fail 
 ;
 
 : (GetModuleList) ( base-addr -- wid...u u )
@@ -141,7 +141,7 @@ INCLUDE fail.fs
         EXIT
     THEN
 
-    S" MODULE ERR: [EXPORT " 2SWAP S+ S" ] INVALID SYNTAX" S+ Fail 
+    S" Module Err: [Export " 2SWAP S+ S" ] Invalid Syntax" S+ Fail 
     ABORT
 ;
 

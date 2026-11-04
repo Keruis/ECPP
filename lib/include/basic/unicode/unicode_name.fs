@@ -1,10 +1,26 @@
 FPATH PATH+ ../../../../forth
 
-INCLUDE shell.fs
+REQUIRE shell.fs
+REQUIRE byte_vector.fs
 
 DECIMAL
 
 Import Shell
+Import ByteVectorModule
++
+
+0 VALUE CUR_FILE_DATA
+
+: LoadFile ( c-addr u -- )
+    SLURP-FILE 2DUP
+    0= IF
+        S" Input File Is Empty" Fail
+    THEN
+    -ROT
+    DUP ByteVector.NewWithCapacity TO CUR_FILE_DATA
+    CUR_FILE_DATA ByteVector.AppendSlice
+    FREE
+;
 
 : PrepareData
     S" mkdir -p tmp" ShOk
@@ -13,7 +29,8 @@ Import Shell
 ;
 
 : Build
-    
+    S" tmp/UnicodeData.txt" LoadFile
+    CUR_FILE_DATA ByteVector.Size .
 ;
 
 : Main ( -- )

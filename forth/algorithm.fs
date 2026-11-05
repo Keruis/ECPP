@@ -1,6 +1,7 @@
 REQUIRE iterator.fs
 
 Import Iterator
+
 VARIABLE (AlgorithmImportCount)
 (AlgorithmImportCount) !
 
@@ -674,7 +675,7 @@ Export : DefineAllOf ( predicate-xt input-ops "name" -- )
     SWAP >R
     (PrepareA)
     R> (BindUnary)
-    S" -1 >R BEGIN 2DUP A-SENTINEL 0= WHILE DUP A-READ PRED 0= IF R> DROP 0 >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
+    S" -1 >R BEGIN 2DUP A-SENTINEL 0= WHILE OVER A-READ PRED 0= IF R> DROP 0 >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
     (FinishAlgorithm)
 ;
 
@@ -682,7 +683,7 @@ Export : DefineAnyOf ( predicate-xt input-ops "name" -- )
     SWAP >R
     (PrepareA)
     R> (BindUnary)
-    S" 0 >R BEGIN 2DUP A-SENTINEL 0= WHILE DUP A-READ PRED IF R> DROP -1 >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
+    S" 0 >R BEGIN 2DUP A-SENTINEL 0= WHILE OVER A-READ PRED IF R> DROP -1 >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
     (FinishAlgorithm)
 ;
 
@@ -690,7 +691,7 @@ Export : DefineNoneOf ( predicate-xt input-ops "name" -- )
     SWAP >R
     (PrepareA)
     R> (BindUnary)
-    S" -1 >R BEGIN 2DUP A-SENTINEL 0= WHILE DUP A-READ PRED IF R> DROP 0 >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
+    S" -1 >R BEGIN 2DUP A-SENTINEL 0= WHILE OVER A-READ PRED IF R> DROP 0 >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
     (FinishAlgorithm)
 ;
 
@@ -698,7 +699,7 @@ Export : DefineForEach ( operation-xt input-ops "name" -- )
     SWAP >R
     (PrepareA)
     R> (BindUnary)
-    S" BEGIN 2DUP A-SENTINEL 0= WHILE DUP A-READ PRED DROP SWAP A-NEXT SWAP REPEAT 2DROP"
+    S" BEGIN 2DUP A-SENTINEL 0= WHILE OVER A-READ PRED DROP SWAP A-NEXT SWAP REPEAT 2DROP"
     (FinishAlgorithm)
 ;
 
@@ -720,7 +721,7 @@ Export : DefineCountIf ( predicate-xt input-ops "name" -- )
     SWAP >R
     (PrepareA)
     R> (BindUnary)
-    S" 0 >R BEGIN 2DUP A-SENTINEL 0= WHILE DUP A-READ PRED IF R> 1+ >R THEN SWAP A-NEXT SWAP REPEAT 2DROP R>"
+    S" 0 >R BEGIN 2DUP A-SENTINEL 0= WHILE OVER A-READ PRED IF R> 1+ >R THEN SWAP A-NEXT SWAP REPEAT 2DROP R>"
     (FinishAlgorithm)
 ;
 
@@ -736,7 +737,7 @@ Export : DefineFindIf ( predicate-xt input-ops "name" -- )
     SWAP >R
     (PrepareA)
     R> (BindUnary)
-    S" DUP >R BEGIN 2DUP A-SENTINEL 0= WHILE DUP A-READ PRED IF R> DROP OVER >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
+    S" DUP >R BEGIN 2DUP A-SENTINEL 0= WHILE OVER A-READ PRED IF R> DROP OVER >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
     (FinishAlgorithm)
 ;
 
@@ -744,7 +745,7 @@ Export : DefineFindIfNot ( predicate-xt input-ops "name" -- )
     SWAP >R
     (PrepareA)
     R> (BindUnary)
-    S" DUP >R BEGIN 2DUP A-SENTINEL 0= WHILE DUP A-READ PRED 0= IF R> DROP OVER >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
+    S" DUP >R BEGIN 2DUP A-SENTINEL 0= WHILE OVER A-READ PRED 0= IF R> DROP OVER >R NIP DUP ELSE SWAP A-NEXT SWAP THEN REPEAT 2DROP R>"
     (FinishAlgorithm)
 ;
 

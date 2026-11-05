@@ -3,6 +3,7 @@
 #include <basic/char_extras.h>
 #include <basic/string_extras.h>
 #include <basic/unicode/unicode_extras.h>
+#include <basic/unicode/unicode_name_to_codepoint.h>
 
 #include <limits>
 
@@ -98,7 +99,10 @@ std::size_t StringLiteralParser::ProcessNumericUCNEscape(char32_t& cp) {
 char32_t StringLiteralParser::UnicodeNameToCodepoint(std::u8string_view name) const {
     if (name.empty()) [[unlikely]]
         throw "ECPP::LEXER::StringLiteralParser::UnicodeNameToCodepoint";
-    
+    char32_t cp = 0;
+    if (BASIC::UnicodeNameToCodepoint(name, cp))
+        return cp;
+    throw "ECPP::LEXER::StringLiteralParser::UnicodeNameToCodepoint";
 }
 
 std::size_t StringLiteralParser::ProcessNameUCNEscape(char32_t& cp) {

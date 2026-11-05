@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <cstdint>
 #include <string_view>
+
 #include <ADT/unicode_char_range.h>
 
 namespace BASIC {
@@ -46,12 +46,8 @@ struct NameNode {
     bool has_long_name = false;
     std::uint8_t index_or_size = 0;
 
-    constexpr void to_bytes(std::vector<std::uint8_t>& bytes) {
-        bytes.push_back((has_code_point ? 0x80 : 0) | (has_long_name ? 0x40 : 0) | index_or_size);
-    }
-
     constexpr NameNode() = default;
-    constexpr explicit NameNode(const std::uint8_t*& bytes)
+    constexpr explicit NameNode(const char8_t*& bytes)
         : has_code_point(*bytes & 0x80),
         has_long_name(*bytes & 0x40),
         index_or_size(*bytes & 0x3F)
@@ -63,13 +59,8 @@ struct NameNode {
 struct DictIndexNode {
     std::uint16_t index= 0;
 
-    constexpr void to_bytes(std::vector<std::uint8_t>& bytes) {
-        bytes.push_back(index >> 8);
-        bytes.push_back(index);
-    }
-
     constexpr DictIndexNode() = default;
-    constexpr explicit DictIndexNode(const std::uint8_t*& bytes) 
+    constexpr explicit DictIndexNode(const char8_t*& bytes) 
         : index(bytes[0] << 8 | bytes[1])
     {
         bytes += 2;
@@ -82,25 +73,8 @@ struct ChildrenOffsetNode {
 
     std::uint32_t children_offset = 0;
 
-    constexpr void init(std::vector<std::uint8_t>& bytes, bool has_code_point) {
-        if (has_code_point)
-            bytes.push_back(0);
-        else bytes.push_back((has_children ? 0x40 : 0) | (has_sibling ? 0x80 : 0));
-        bytes.push_back(0);
-        bytes.push_back(0);
-    }
-
-    constexpr void to_bytes(std::uint8_t* const bytes, bool has_code_point) {
-        if (has_code_point)
-            bytes[0] = children_offset >> 16;
-        else
-            bytes[0] = children_offset >> 16 | bytes[0];
-        bytes[1] = children_offset >> 8;
-        bytes[2] = children_offset;
-    }
-
     constexpr ChildrenOffsetNode() = default;
-    constexpr explicit ChildrenOffsetNode(const std::uint8_t*& bytes, bool has_code_point) {
+    constexpr explicit ChildrenOffsetNode(const char8_t*& bytes, bool has_code_point) {
         if (has_code_point) {
             children_offset = (bytes[0] << 16) | (bytes[1] << 8) | bytes[2];
             bytes += 3;
@@ -122,14 +96,8 @@ struct CodePointNode {
     bool has_sibling = false;
     std::uint32_t code_point = 0;
 
-    constexpr void to_bytes(std::vector<std::uint8_t>& bytes) {
-        bytes.push_back((code_point >> 16) | (has_children ? 0x40 : 0) | (has_sibling ? 0x80 : 0));
-        bytes.push_back(code_point >> 8);
-        bytes.push_back(code_point);
-    }
-
     constexpr CodePointNode() = default;
-    constexpr explicit CodePointNode(const std::uint8_t*& bytes) 
+    constexpr explicit CodePointNode(const char8_t*& bytes) 
         : has_children(bytes[0] & 0x40),
             has_sibling(bytes[0] & 0x80),
             code_point(((bytes[0] & 0x3F) << 16) | bytes[1] << 8 | bytes[2])
@@ -138,8 +106,7 @@ struct CodePointNode {
     }
 };
 
-// SRAER
-
+// START
 
 
 // END

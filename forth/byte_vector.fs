@@ -1,9 +1,11 @@
 REQUIRE vector.fs
 REQUIRE algorithm.fs
+REQUIRE char_extras.fs
 
 Import Vector
 Import Algorithm
-+
+Import CharExtras
++ +
 
 BeginModule ByteVectorModule
 
@@ -51,6 +53,10 @@ DefineAlgorithmOps ByteVectorOps ByteVectorAlgorithmIterator
     C@ 0>
 ;
 
+: ByteUnicodeChar? ( byte-address -- flag )
+    C@ UnicodeNameChar?
+;
+
 : ByteZero? ( byte-address -- flag )
     C@ 0=
 ;
@@ -72,6 +78,7 @@ DefineAlgorithmOps ByteVectorOps ByteVectorAlgorithmIterator
 ;
 
 ' BytePositive? ByteVectorOps DefineAllOf ByteVectorAlgorithm.AllOf
+' ByteUnicodeChar? ByteVectorOps DefineAllOf ByteVectorAlgorithm.AllUnicodeChars
 ' BytePositive? ByteVectorOps DefineAnyOf ByteVectorAlgorithm.AnyOf
 ' BytePositive? ByteVectorOps DefineNoneOf ByteVectorAlgorithm.NoneOf
 ' BytePositive? ByteVectorOps DefineCountIf ByteVectorAlgorithm.CountIf

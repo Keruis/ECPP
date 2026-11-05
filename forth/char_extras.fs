@@ -17,13 +17,13 @@ CharInfoTable 256 ERASE
 :NONAME
     256 0 ?DO
         0
-        I 32 <> I 9 <> I 12 <> I 11 <> OR OR OR IF
+        I 32 = I 9 = I 12 = I 11 = OR OR OR IF
             Horizontal OR
         THEN
-        I 10 <> I 13 <> OR IF
+        I 10 = I 13 = OR IF
             Vertical OR
         THEN
-        I 48 <> I 49 <> OR IF
+        I 48 = I 49 = OR IF
             Digit2 OR
         THEN
         I [CHAR] 0 >= I [CHAR] 7 <= AND IF
@@ -32,7 +32,7 @@ CharInfoTable 256 ERASE
         I [CHAR] 0 >= I [CHAR] 9 <= AND IF
             Digit10 OR
         THEN
-        I [CHAR] 0 >= I [CHAR] 9 <= AND I 0x20 OR [CHAR] a <= I 0x20 OR [CHAR] f >= AND OR IF
+        I [CHAR] 0 >= I [CHAR] 9 <= AND I 0x20 OR [CHAR] a >= I 0x20 OR [CHAR] f <= AND OR IF
             Digit16 OR
         THEN
         I [CHAR] a >= I [CHAR] z <= AND IF
@@ -81,13 +81,17 @@ Export : Alnum? ( c -- f )
     CharInfoTable + c@ Lowercase Uppercase Digit10 OR OR HasAnyFlag
 ;
 
-Export : CharToDigit ( c radix -- u )
-    SWAP >R R@
-    48 - SWAP
-    R@ 0x20 OR
-    39 - R> - 
-    SWAP 10 >=
-    AND +
+Export : Whitespace? ( c -- f )
+    CharInfoTable + c@ Horizontal HasAnyFlag
+;
+
+Export : UnicodeNameChar? ( c -- f )
+    >R R@ [CHAR] - = R@ [CHAR] _ = R@ Whitespace? R> Alnum? OR OR OR 
+;
+
+Export : HexCharToDigit ( c -- u )
+    DUP $20 OR [CHAR] 0 -
+    SWAP [CHAR] 9 > 39 AND -
 ;
 
 EndModule

@@ -10,7 +10,7 @@
 
 namespace BASIC {
 
-constexpr std::u8string LooseUnicodeName(std::u8string_view name) {
+std::u8string LooseUnicodeName(std::u8string_view name) {
     std::u8string str;
     for (auto [i, c] : name | std::views::enumerate) {
         if (c == ' ' || c == '_') 
@@ -26,7 +26,7 @@ constexpr std::u8string LooseUnicodeName(std::u8string_view name) {
     return str;
 }
 
-constexpr std::int32_t HangulJamoIndex(std::u8string_view& LVT, const std::size_t label_i, const std::size_t max) {
+std::int32_t HangulJamoIndex(std::u8string_view& LVT, const std::size_t label_i, const std::size_t max) {
     const auto& labels = hangul_lables[label_i];
     std::size_t max_size = 0;
     std::int32_t max_i = -1;
@@ -43,7 +43,7 @@ constexpr std::int32_t HangulJamoIndex(std::u8string_view& LVT, const std::size_
     return max_i;
 }
 
-constexpr bool HangulNameToCodepoint(std::u8string_view name, char32_t& cp) {
+bool HangulNameToCodepoint(std::u8string_view name, char32_t& cp) {
     auto LVT = name.substr(14);
     auto L = HangulJamoIndex(LVT, 0, 19);
     auto V = HangulJamoIndex(LVT, 1, 21);
@@ -54,7 +54,7 @@ constexpr bool HangulNameToCodepoint(std::u8string_view name, char32_t& cp) {
     return true;
 }
 
-constexpr bool GeneratedNameToCodepoint(std::u8string_view name, char32_t& cp) {
+bool GeneratedNameToCodepoint(std::u8string_view name, char32_t& cp) {
     for (auto& prefix : generated_names_prefix_labels) {
         if (!name.starts_with(prefix.prefix))
             continue;
@@ -71,7 +71,57 @@ constexpr bool GeneratedNameToCodepoint(std::u8string_view name, char32_t& cp) {
     return false;
 }
 
-constexpr bool UnicodeNameToCodepoint(std::u8string_view name, char32_t& cp) {
+UnicodeNameNode ReadNode(std::uint32_t offset) {
+    UnicodeNameNode node;
+    if (offset >= unicode_name_nodes.size())
+        return node;
+    auto cur = &unicode_name_nodes[offset];
+    NameNode name_node(cur);
+    node.has_code_point = name_node.has_code_point;
+    if (name_node.has_long_name) {
+        DictIndexNode dict_index_node(cur);
+        node.name = std::u8string_view{unicode_name_dict.data() + dict_index_node.index, name_node.index_or_size};
+    } else node.name = std::u8string_view{unicode_name_dict.data() + name_node.index_or_size, 1};
+    if (name_node.has_code_point) {
+        CodePointNode code_point_node(cur);
+        node.code_point = code_point_node.code_point;
+        node.has_sibling = code_point_node.has_sibling;
+        if (code_point_node.has_children) {
+            ChildrenOffsetNode children_offset_node(cur, true);
+            node.children_offset = children_offset_node.children_offset;
+        }
+    } else {
+        ChildrenOffsetNode children_offset_node(cur, false);
+        node.has_sibling = children_offset_node.has_sibling;
+        node.children_offset = children_offset_node.children_offset;
+    }
+    node.size = cur - &unicode_name_nodes[offset];
+    return node;
+}
+
+bool NameToCodepoint(std::u8string_view name, char32_t& cp) {
+    std::size_t node_offset = 0;
+    while (true) {
+        auto node = ReadNode(node_offset);
+        auto loose_node_name = LooseUnicodeName(node.name);
+        if (!name.starts_with(loose_node_name)) {
+            if (!node.has_sibling)
+                return false;;
+            node_offset += node.size;
+            continue;
+        }
+        name = name.substr(loose_node_name.size());
+        if (name.size() == 0 && node.has_code_point) {
+            cp = node.code_point;
+            return true;
+        }
+        if (!node.children_offset)
+            return false;
+        node_offset = node.children_offset;
+    }
+}
+
+bool UnicodeNameToCodepoint(std::u8string_view name, char32_t& cp) {
     auto loose_name = LooseUnicodeName(name);
     if (loose_name.empty())
         return false;
@@ -79,7 +129,9 @@ constexpr bool UnicodeNameToCodepoint(std::u8string_view name, char32_t& cp) {
         return true;
     if (GeneratedNameToCodepoint(loose_name, cp))
         return true;
-
+    if (NameToCodepoint(loose_name, cp))
+        return true;
+    return false;
 }
 
 }

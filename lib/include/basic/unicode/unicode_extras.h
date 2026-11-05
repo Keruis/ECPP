@@ -18,7 +18,7 @@ constexpr bool IsXidContinue(char32_t cp) noexcept {
 }
 
 constexpr bool IsUnicodeNameChar(char32_t cp) noexcept {
-    return IsUppercase(cp) || IsDigit(cp, 10) || cp == U'-' || cp == ' ';
+    return IsAlphanumeric(cp) || cp == U'-' || cp == ' ';
 } 
 
 }

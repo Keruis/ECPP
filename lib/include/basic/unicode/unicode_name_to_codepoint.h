@@ -16,16 +16,16 @@ struct UnicodeNameNode {
     std::size_t size = 0;
 };
 
-std::u8string LooseUnicodeName(std::u8string_view);
+std::u8string LooseUnicodeName(const std::u8string_view);
 
 std::int32_t HangulJamoIndex(std::u8string_view&, const std::size_t, const std::size_t);
-bool HangulNameToCodepoint(std::u8string_view, char32_t&);
+bool HangulNameToCodepoint(const std::u8string_view, char32_t&);
 
-bool GeneratedNameToCodepoint(std::u8string_view, char32_t&);
+bool GeneratedNameToCodepoint(const std::u8string_view, char32_t&);
 
-UnicodeNameNode ReadNode(std::uint32_t);
+UnicodeNameNode ReadNode(const std::uint32_t);
 bool NameToCodepoint(std::u8string_view, char32_t&);
 
-bool UnicodeNameToCodepoint(std::u8string_view, char32_t&);
+bool UnicodeNameToCodepoint(const std::u8string_view, char32_t&);
 
 }

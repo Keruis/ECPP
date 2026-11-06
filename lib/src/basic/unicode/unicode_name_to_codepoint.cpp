@@ -10,7 +10,7 @@
 
 namespace BASIC {
 
-std::u8string LooseUnicodeName(std::u8string_view name) {
+std::u8string LooseUnicodeName(const std::u8string_view name) {
     std::u8string str;
     for (auto [i, c] : name | std::views::enumerate) {
         if (c == ' ' || c == '_') 
@@ -43,7 +43,7 @@ std::int32_t HangulJamoIndex(std::u8string_view& LVT, const std::size_t label_i,
     return max_i;
 }
 
-bool HangulNameToCodepoint(std::u8string_view name, char32_t& cp) {
+bool HangulNameToCodepoint(const std::u8string_view name, char32_t& cp) {
     auto LVT = name.substr(14);
     auto L = HangulJamoIndex(LVT, 0, 19);
     auto V = HangulJamoIndex(LVT, 1, 21);
@@ -54,7 +54,7 @@ bool HangulNameToCodepoint(std::u8string_view name, char32_t& cp) {
     return true;
 }
 
-bool GeneratedNameToCodepoint(std::u8string_view name, char32_t& cp) {
+bool GeneratedNameToCodepoint(const std::u8string_view name, char32_t& cp) {
     for (auto& prefix : generated_names_prefix_labels) {
         if (!name.starts_with(prefix.prefix))
             continue;
@@ -71,7 +71,7 @@ bool GeneratedNameToCodepoint(std::u8string_view name, char32_t& cp) {
     return false;
 }
 
-UnicodeNameNode ReadNode(std::uint32_t offset) {
+UnicodeNameNode ReadNode(const std::uint32_t offset) {
     UnicodeNameNode node;
     if (offset >= unicode_name_nodes.size())
         return node;
@@ -121,7 +121,7 @@ bool NameToCodepoint(std::u8string_view name, char32_t& cp) {
     }
 }
 
-bool UnicodeNameToCodepoint(std::u8string_view name, char32_t& cp) {
+bool UnicodeNameToCodepoint(const std::u8string_view name, char32_t& cp) {
     auto loose_name = LooseUnicodeName(name);
     if (loose_name.empty())
         return false;

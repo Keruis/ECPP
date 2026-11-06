@@ -85,7 +85,7 @@ bool Decode<char32_t>(const std::u32string_view chars, UTFChar &c) noexcept {
 }
 
 template <>
-bool Encode<char8_t>(char32_t cp, std::u8string& str) {
+bool Encode<char8_t>(const char32_t cp, std::u8string& str) {
     std::size_t length = 0;
     char8_t bytes[4];
     switch (cp) {
@@ -122,7 +122,7 @@ bool Encode<char8_t>(char32_t cp, std::u8string& str) {
 }
 
 template <>
-bool Encode<char16_t>(char32_t cp, std::u16string& str) {
+bool Encode<char16_t>(const char32_t cp, std::u16string& str) {
     switch (cp) {
         case 0x00 ... 0xD7FF:
         case 0xE000 ... 0xFFFF:
@@ -140,7 +140,7 @@ bool Encode<char16_t>(char32_t cp, std::u16string& str) {
 }
 
 template <>
-bool Encode<char32_t>(char32_t cp, std::u32string& str) {
+bool Encode<char32_t>(const char32_t cp, std::u32string& str) {
     if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))
         return false;
     str.push_back(cp);

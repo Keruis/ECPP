@@ -2,9 +2,13 @@
 #include <lex/lex.h>
 
 #include <config.h>
+#include <basic/fail.h>
 #include <lex/string_literal.h>
+#include <lex/numeric_literal.h>
 #include <basic/string_extras.h>
 #include <basic/unicode/unicode_extras.h>
+
+#include <format>
 
 namespace ECPP::LEXER {
 
@@ -28,7 +32,7 @@ BASIC::UTFChar Lexer::PeekNext() const {
     return m_source.PeekAt(1);
 }
 
-void Lexer::Advance(BASIC::UTFChar c) noexcept {
+void Lexer::Advance(const BASIC::UTFChar c) noexcept {
     AdvanceCursor(c.length);
     switch (c.codepoint) {
         case U'\n':
@@ -44,11 +48,11 @@ void Lexer::Advance(BASIC::UTFChar c) noexcept {
     m_last_was_cr = c.codepoint == U'\r';
 }
 
-void Lexer::AdvanceCursor(std::size_t offset) noexcept {
+void Lexer::AdvanceCursor(const std::size_t offset) noexcept {
     m_source.AdvanceBytes(offset);
 }
 
-void Lexer::AdvanceColumn(std::size_t offset) noexcept {
+void Lexer::AdvanceColumn(const std::size_t offset) noexcept {
     m_column_offset += offset;
     m_last_was_cr = false;
 }
@@ -62,7 +66,7 @@ void Lexer::UpdatePostion() noexcept {
     m_column_offset = 0;
 }
 
-void Lexer::UpdateToken(TokenClass cls, TokenType type, std::u8string_view text = {}) noexcept {
+void Lexer::UpdateToken(const TokenClass cls, const TokenType type, const std::u8string_view text = {}) noexcept {
     m_tok.cls = cls;
     m_tok.type = type;
     m_tok.text = text;
@@ -90,7 +94,7 @@ void Lexer::SkipBlockComment(BASIC::UTFChar c1, BASIC::UTFChar c2) {
         Advance(c1);
     }
     if (!closed) [[unlikely]]
-        throw "ECPP::PARSER::Lexer::SkipTrivia";
+        BASIC::Fail("Unterminated block comment: expected '*/' before end of input", m_location);
     UpdatePostion();
 }
 
@@ -121,7 +125,7 @@ BASIC::UTFChar Lexer::SkipTrivia() {
     return {0, 0};
 }
 
-void Lexer::EqualsSuffixOperator(BASIC::UTFChar c) noexcept {
+void Lexer::EqualsSuffixOperator(const BASIC::UTFChar c) noexcept {
     const bool equals_suffix = m_source.HasRemaining(2) && m_source.CurPtr()[1] == U'=';
     const std::size_t offset = 1 + equals_suffix;
     AdvanceCursor(offset);
@@ -135,10 +139,10 @@ void Lexer::EqualsSuffixOperator(BASIC::UTFChar c) noexcept {
     );
 }
 
-void Lexer::RepeatedCharOperator(BASIC::UTFChar c) noexcept {
-    char next_char = 0;
+void Lexer::RepeatedCharOperator(const BASIC::UTFChar c) noexcept {
+    char32_t next_char = 0;
     if (m_source.HasRemaining(2))
-        next_char = m_source.CurPtr()[1];
+        next_char = PeekNext().codepoint;
     const bool repeat = next_char == c.codepoint;
     const bool equals_suffix = next_char == U'=';
     const std::size_t offset = 1 + (repeat || equals_suffix);
@@ -154,7 +158,7 @@ void Lexer::RepeatedCharOperator(BASIC::UTFChar c) noexcept {
     );
 }
 
-void Lexer::Punctuation(BASIC::UTFChar c) noexcept {
+void Lexer::Punctuation(const BASIC::UTFChar c) noexcept {
     Advance(c);
     UpdateToken(
         TokenClass::PUNCTUATOR, 
@@ -162,7 +166,7 @@ void Lexer::Punctuation(BASIC::UTFChar c) noexcept {
     );
 }
 
-TokenType Lexer::FindKeyword(std::u8string_view text) const noexcept {
+TokenType Lexer::FindKeyword(const std::u8string_view text) const noexcept {
     if (text == u8"if")
         return TokenType::KEYWORD_IF;
     if (text == u8"else")
@@ -189,7 +193,6 @@ void Lexer::Identifier(BASIC::UTFChar c) {
 }
 
 void Lexer::StringLiteral() {
-    auto& character = m_tok.character;
     auto& str = m_tok.str;
     TokenType type = TokenType::LITERALS_STRING_VIEW;
     BASIC::UTFChar c{U'\"', 1};
@@ -197,7 +200,7 @@ void Lexer::StringLiteral() {
     while (!AtEnd()) {
         c = Peek();
         if (BASIC::IsVerticalWhitespace(c.codepoint)) [[unlikely]]
-            throw "ECPP::PARSER::Lexer::StringLiteral_1";
+            BASIC::Fail("Unescaped newline in string literal", m_location);
         if (c.codepoint == U'"') {
             Advance(c);
             UpdateToken(
@@ -213,8 +216,10 @@ void Lexer::StringLiteral() {
                 str.assign(m_start + 1, m_source.CurPtr());
             type = TokenType::LITERALS_STRING;
             Advance(c);
-            StringLiteralParser par{m_source, m_tok.str};
-            const std::size_t length = par.ParserEscape();
+            if (AtEnd())
+                BASIC::Fail("Unterminated escape sequence in string literal", m_location);
+            StringLiteralParser par{m_source, m_location, m_tok.str};
+            const std::size_t length = par.ParseEscape();
             AdvanceCursor(length);
             AdvanceColumn(length);
             continue;
@@ -223,105 +228,41 @@ void Lexer::StringLiteral() {
             str.append(m_source.CurPtr(), c.length);
         Advance(c);
     }
-    throw "ECPP::PARSER::Lexer::StringLiteral_2";
+    BASIC::Fail("Unterminated string literal: expected '\"' before end of input", m_location);
 }
 
-bool Lexer::RadixPrefix() {
-    if (AtEnd() || ((Peek().codepoint | 0x20) != U'x'))
-        return false;
-    AdvanceCursor(1);
-    const std::size_t length = BASIC::ScanNumeric(m_source.CurPtr(), m_source.EndPtr(), 16);
-    if (!length)
-        throw "ECPP::PARSER::Lexer::RadixPrefix";
-    AdvanceCursor(length);
-    return true;
-}
-
-void Lexer::FloatLiteral(TokenType& type) {
+void Lexer::CharLiteral() {
+    Advance({'\'', 1});
     if (AtEnd())
-        return;
-
-    if (Peek().codepoint == U'.') {
-        AdvanceCursor(1);
-        AdvanceCursor(BASIC::ScanNumeric(m_source.CurPtr(), m_source.EndPtr(), 10));
-        type = TokenType::LITERALS_FLOAT;
-    }
-
-    if (AtEnd() || ((Peek().codepoint | 0x20) != U'e'))
-        return;
-
-    AdvanceCursor(1);
-
-    const char cp = Peek().codepoint;
-    if (!AtEnd() && (cp == U'+' || cp == U'-'))
-        AdvanceCursor(1);
-
-    const char8_t* start = m_source.CurPtr();
-    const std::size_t length = BASIC::ScanNumeric(start, m_source.EndPtr(), 10);
-    if (!length)
-        throw "ECPP::PARSER::Lexer::FloatLiteral";
-    AdvanceCursor(length);
-    type = TokenType::LITERALS_FLOAT;
-}
-
-void Lexer::NumericSuffix(TokenType& type) {
-    m_tok.suffix = 0;
+        BASIC::Fail("Unterminated character literal: expected a character before end of input", m_location);
     BASIC::UTFChar c = Peek();
-    if (AtEnd())
-        return;
-
-    switch (c.codepoint) {
-        case U'u': case U'U':
-        case U'i': case U'I':
-            if (type == TokenType::LITERALS_FLOAT)
-                throw "ECPP::PARSER::Lexer::NumericSuffix";
-            AdvanceCursor(1);
-            type = TokenType::LITERALS_INT_SUF;
-            break;
-        case U'f': case U'F':
-            AdvanceCursor(1);
-            type = TokenType::LITERALS_FLOAT_SUF;
-            break;
-        default:
-            if (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint) || BASIC::IsXidContinue(c.codepoint))
-                throw "ECPP::PARSER::Lexer::NumericSuffix";
-            return;
-    }
-    
-    c = Peek();
-    while (!AtEnd() && BASIC::IsDigit(c.codepoint, 10)) {
-        const std::uint8_t digit = c.codepoint - U'0';
-        if (m_tok.suffix > (255 - digit) / 10)
-            throw "ECPP::PARSER::Lexer::NumericSuffix";
-        m_tok.suffix = m_tok.suffix * 10 + digit;
-        AdvanceCursor(1);
+    if (c.codepoint == U'\'')
+        BASIC::Fail("Empty character literal: expected exactly one character", m_location);
+    if (BASIC::IsVerticalWhitespace(c.codepoint))
+        BASIC::Fail("Unescaped newline in character literal", m_location);
+    if (c.codepoint == U'\\') {
+        Advance(c);
+        if (AtEnd())
+            BASIC::Fail("Unterminated escape sequence in character literal", m_location);
         c = Peek();
-    }
-
-    if (!UTILITY::IsAnyOf(m_tok.suffix, 8, 16, 32, 64))
-        throw "ECPP::PARSER::Lexer::NumericSuffix";
-}
-
-void Lexer::NumericLiteral(BASIC::UTFChar c) {
-    TokenType type = TokenType::LITERALS_INT;
-    m_tok.suffix = 0;
-    
-    AdvanceCursor(1);
-    const bool is_hex = c.codepoint == U'0' && RadixPrefix();
-    if (!is_hex) {
-        AdvanceCursor(BASIC::ScanNumeric(m_source.CurPtr(), m_source.EndPtr(), 10));
-        FloatLiteral(type);
-    }
-
-    NumericSuffix(type);
-    const std::size_t consumed = m_source.CurPtr() - m_start;
-    const std::size_t suffix_length = m_tok.suffix == 0 ? 0 : (m_tok.suffix >= 10 ? 3 : 2);
+        m_tok.character = StringLiteralParser::GetEscapeChar(c.codepoint, m_location);
+    } else m_tok.character = c.codepoint;
+    Advance(c);
+    if (AtEnd())
+        BASIC::Fail("Unterminated character literal: expected a closing quote before end of input", m_location);
+    c = Peek();
+    if (c.codepoint != U'\'')
+        BASIC::Fail("Invalid character literal: expected a closing quote after exactly one character", m_location);
+    Advance(c);
     UpdateToken(
         TokenClass::LITERAL,
-        type,
-        {m_start, consumed - suffix_length}
+        TokenType::LITERALS_CHARACTER
     );
-    AdvanceColumn(consumed);
+}
+
+void Lexer::NumericLiteral(const BASIC::UTFChar c) {
+    NumericLiteralParser par{m_source, m_location, m_tok.text, m_tok.suffix, m_tok.type};
+    AdvanceColumn(par.ParseNumericLiteral(c.codepoint));
 }
 
 void Lexer::NextToken() {
@@ -340,11 +281,18 @@ void Lexer::NextToken() {
     m_start = m_source.CurPtr();
 
     switch (c.codepoint) {
+        case U'.':
+            if (m_source.HasRemaining(2) && BASIC::IsDigit(PeekNext().codepoint, 10)) {
         case U'0' ... U'9':
             return NumericLiteral(c);
+            }
+            break;
 
         case U'"':
             return StringLiteral();
+        
+        case U'\'':
+            return CharLiteral();
 
         case U'!': case U'=':
         case U'*': case U'/':
@@ -376,7 +324,7 @@ void Lexer::NextToken() {
             return;
         }
     }
-    throw "ECPP::PARSER::Lexer::NextToken";
+    BASIC::Fail(std::format("Unexpected character U+{:04X}", static_cast<std::uint32_t>(c.codepoint)), m_location);
 }
 
 }

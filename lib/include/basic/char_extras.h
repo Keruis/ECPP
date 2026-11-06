@@ -54,7 +54,7 @@ constexpr std::array<std::uint8_t, 256> CharTable = []{
     return table;
 }();
 
-constexpr bool IsDigit(char32_t c, std::size_t radix) noexcept {
+constexpr bool IsDigit(const char32_t c, const std::size_t radix) noexcept {
     using enum CharFlag;
 
     assert(UTILITY::IsAnyOf(radix, 2, 8, 10, 16));
@@ -73,35 +73,35 @@ constexpr bool IsDigit(char32_t c, std::size_t radix) noexcept {
     std::unreachable();
 }
 
-constexpr bool IsAscii(char32_t c) noexcept {
+constexpr bool IsAscii(const char32_t c) noexcept {
     return c <= 127;
 }
 
-constexpr bool IsLowercase(char32_t c) noexcept {
+constexpr bool IsLowercase(const char32_t c) noexcept {
     return UTILITY::HasAnyFlag<CharTable, CharFlag::LOWERCASE>(static_cast<char8_t>(c));
 }
 
-constexpr bool IsUppercase(char32_t c) noexcept {
+constexpr bool IsUppercase(const char32_t c) noexcept {
     return UTILITY::HasAnyFlag<CharTable, CharFlag::UPPERCASE>(static_cast<char8_t>(c));
 }
 
-constexpr bool IsLetter(char32_t c) noexcept {
+constexpr bool IsLetter(const char32_t c) noexcept {
     return UTILITY::HasAnyFlag<CharTable, CharFlag::LOWERCASE, CharFlag::UPPERCASE>(static_cast<char8_t>(c));
 }
 
-constexpr bool IsAlphanumeric(char32_t c) noexcept {
+constexpr bool IsAlphanumeric(const char32_t c) noexcept {
     return UTILITY::HasAnyFlag<CharTable, CharFlag::LOWERCASE, CharFlag::UPPERCASE, CharFlag::DIGIT_10>(static_cast<char8_t>(c));
 }
 
-constexpr bool IsHorizontalWhitespace(char32_t c) noexcept {
+constexpr bool IsHorizontalWhitespace(const char32_t c) noexcept {
     return UTILITY::HasAnyFlag<CharTable, CharFlag::HORIZONTAL>(static_cast<char8_t>(c));
 }
 
-constexpr bool IsVerticalWhitespace(char32_t c) noexcept {
+constexpr bool IsVerticalWhitespace(const char32_t c) noexcept {
     return UTILITY::HasAnyFlag<CharTable, CharFlag::VERTICAL>(static_cast<char8_t>(c));
 }
 
-constexpr std::uint8_t CharToDigit(char32_t c, std::size_t radix) noexcept {
+constexpr std::uint8_t CharToDigit(const char32_t c, const std::size_t radix) noexcept {
     assert(IsDigit(c, radix));
 
     return radix >= 10 

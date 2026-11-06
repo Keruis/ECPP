@@ -19,25 +19,23 @@ class Lexer {
         bool AtEnd() const noexcept;
         BASIC::UTFChar Peek() const;
         BASIC::UTFChar PeekNext() const;
-        void Advance(BASIC::UTFChar) noexcept;
-        void AdvanceCursor(std::size_t) noexcept;
-        void AdvanceColumn(std::size_t) noexcept;
+        void Advance(const BASIC::UTFChar) noexcept;
+        void AdvanceCursor(const std::size_t) noexcept;
+        void AdvanceColumn(const std::size_t) noexcept;
         void UpdatePostion() noexcept;
-        void UpdateToken(TokenClass, TokenType, std::u8string_view) noexcept;
+        void UpdateToken(const TokenClass, const TokenType, const std::u8string_view) noexcept;
 
         void SkipLineComment(BASIC::UTFChar);
         void SkipBlockComment(BASIC::UTFChar, BASIC::UTFChar);
         BASIC::UTFChar SkipTrivia();
-        void EqualsSuffixOperator(BASIC::UTFChar) noexcept;
-        void RepeatedCharOperator(BASIC::UTFChar) noexcept;
-        void Punctuation(BASIC::UTFChar) noexcept;
+        void EqualsSuffixOperator(const BASIC::UTFChar) noexcept;
+        void RepeatedCharOperator(const BASIC::UTFChar) noexcept;
+        void Punctuation(const BASIC::UTFChar) noexcept;
         void Identifier(BASIC::UTFChar);
-        TokenType FindKeyword(std::u8string_view) const noexcept;
+        TokenType FindKeyword(const std::u8string_view) const noexcept;
         void StringLiteral();
-        bool RadixPrefix();
-        void FloatLiteral(TokenType&);
-        void NumericSuffix(TokenType&);
-        void NumericLiteral(BASIC::UTFChar);
+        void CharLiteral();
+        void NumericLiteral(const BASIC::UTFChar);
 
     private:
         BASIC::UTFCursor<char8_t>& m_source;

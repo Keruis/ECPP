@@ -3,14 +3,13 @@
 #include <basic/utf/utf_char.h>
 #include <basic/utf/encodeing.h>
 #include <cstddef>
-#include <string_view>
 
 namespace BASIC {
 
 template <typename T>
 class UTFCursor {
     public:
-        explicit UTFCursor(std::basic_string_view<T> data) 
+        explicit UTFCursor(const std::basic_string_view<T> data) 
             : m_data(data) 
         {}
 
@@ -23,14 +22,14 @@ class UTFCursor {
         }
 
         auto EndPtr() const noexcept {
-            return m_data.data() + m_data.size();
+            return m_data.end();
         }
 
         bool AtEnd() const noexcept {
             return CurPtr() >= EndPtr();
         }
 
-        bool HasRemaining(std::size_t size) const noexcept {
+        bool HasRemaining(const std::size_t size) const noexcept {
             return EndPtr() - CurPtr() >= size;
         }
 
@@ -38,8 +37,12 @@ class UTFCursor {
             return m_data.empty();
         }
 
-        void AdvanceBytes(std::size_t offset) noexcept {
+        void AdvanceBytes(const std::size_t offset) noexcept {
             m_offset += offset;
+        }
+
+        void RetreatBytes(const std::size_t offset) noexcept {
+            m_offset -= offset;
         }
 
         UTFChar PeekAt(std::size_t offset) const {

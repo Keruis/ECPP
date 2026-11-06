@@ -7,17 +7,17 @@
 
 namespace BASIC {
 
-constexpr bool IsXidStart(char32_t cp) noexcept {
+constexpr bool IsXidStart(const char32_t cp) noexcept {
     ADT::UnicodeCharRange ranges(xid_start_range);
     return ranges.Contains(cp);
 }
 
-constexpr bool IsXidContinue(char32_t cp) noexcept {
+constexpr bool IsXidContinue(const char32_t cp) noexcept {
     ADT::UnicodeCharRange ranges(xid_continue_range);
     return ranges.Contains(cp);
 }
 
-constexpr bool IsUnicodeNameChar(char32_t cp) noexcept {
+constexpr bool IsUnicodeNameChar(const char32_t cp) noexcept {
     return IsAlphanumeric(cp) || cp == U'-' || cp == ' ';
 } 
 

@@ -24,19 +24,19 @@ bool HasAnyFlag(auto f) noexcept {
 
 template <std::size_t left, std::size_t right>
 struct Interval {
-    constexpr static bool IsInClosedInterval(std::size_t value) noexcept {
+    constexpr static bool IsInClosedInterval(const std::size_t value) noexcept {
         return value >= left && value <= right; 
     }
 
-    constexpr static bool IsInOpeninterval(std::size_t value) noexcept {
+    constexpr static bool IsInOpeninterval(const std::size_t value) noexcept {
         return value > left && value < right;
     }
 
-    constexpr static bool IsInLeftClosedInterval(std::size_t value) noexcept {
+    constexpr static bool IsInLeftClosedInterval(const std::size_t value) noexcept {
         return value >= left && value < right; 
     }
 
-    constexpr static bool IsInLeftOpeninterval(std::size_t value) noexcept {
+    constexpr static bool IsInLeftOpeninterval(const std::size_t value) noexcept {
         return value > left && value <= right;
     }
 };

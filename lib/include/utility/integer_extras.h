@@ -6,7 +6,7 @@
 
 namespace UTILITY {
 
-constexpr bool WouldOverflow(std::unsigned_integral auto value, std::unsigned_integral auto digit, std::unsigned_integral auto M, std::size_t radix) noexcept {
+constexpr bool WouldOverflow(const std::unsigned_integral auto value, const std::unsigned_integral auto digit, const std::unsigned_integral auto M, const std::size_t radix) noexcept {
     return value > (M - digit) / radix;
 }
 

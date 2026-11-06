@@ -1,11 +1,10 @@
 #include <lex/string_literal.h>
 
+#include <basic/fail.h>
 #include <basic/char_extras.h>
 #include <basic/string_extras.h>
 #include <basic/unicode/unicode_extras.h>
 #include <basic/unicode/unicode_name_to_codepoint.h>
-
-#include <limits>
 
 namespace ECPP::LEXER {
 
@@ -23,7 +22,7 @@ char32_t StringLiteralParser::PeekAt(const std::size_t offset) const {
 
 void StringLiteralParser::AppendCodepoint(const char32_t cp) {
     if (!BASIC::Encode(cp, m_str)) [[unlikely]]
-        throw "ECPP::LEXER::StringLiteralParser::AppendCodepoint";
+        BASIC::Fail("Invalid Unicode code point: cannot encode the value as UTF-8", m_loc);
 }
 
 std::size_t StringLiteralParser::GetEsacpeRadix(const char32_t cp) const noexcept {
@@ -41,7 +40,7 @@ std::size_t StringLiteralParser::GetEsacpeRadix(const char32_t cp) const noexcep
     }
 }
 
-char32_t StringLiteralParser::GetEscapeChar(const char32_t cp) const {
+char32_t StringLiteralParser::GetEscapeChar(const char32_t cp, const BASIC::Location loc) {
     switch (cp) {
         case U'\\': case U'\'':
         case U'\"':
@@ -54,7 +53,7 @@ char32_t StringLiteralParser::GetEscapeChar(const char32_t cp) const {
         case U'r': return U'\r';
         case U't': return U'\t';
         default: [[unlikely]]
-            throw "ECPP::LEXER::StringLiteralParser::GetEscapeChar";
+            BASIC::Fail("Invalid escape sequence: unsupported escape character.", loc);
     }
 }
 
@@ -64,18 +63,18 @@ std::size_t StringLiteralParser::ProcessNumericEscape(char32_t& cp, const std::s
         const std::size_t num_length = BASIC::ScanNumeric(start, m_source.EndPtr(), radix);
         const char8_t* close = start + num_length;
         if (close >= m_source.EndPtr() || *close != U'}') [[unlikely]]
-            throw "ECPP::LEXER::StringLiteralParser::ProcessCharEscape3";
+            BASIC::Fail("Unterminated numeric escape: expected '}' after the digits", m_loc);
         if (!num_length) [[unlikely]]
-            throw "ECPP::LEXER::StringLiteralParser::ProcessCharEscape2";
+            BASIC::Fail("Invalid numeric escape: expected at least one digit after the radix prefix", m_loc);
         bool is_overflow = false;
-        cp = BASIC::IntegerStringToNumeric(start, close, is_overflow, std::numeric_limits<char32_t>::max(), radix);
+        cp = BASIC::IntegerStringToNumeric(start, close, is_overflow, 0x10FFFF, radix);
         if (is_overflow) [[unlikely]]
-            throw "ECPP::LEXER::StringLiteralParser::ProcessCharEscape4";
+            BASIC::Fail("Numeric escape value exceeds the maximum supported Unicode code point", m_loc);
         return num_length + 3;
     }
 
     if (cp != U'b') [[unlikely]]
-        throw "ECPP::LEXER::StringLiteralParser::ProcessCharEscape6";
+        BASIC::Fail("Invalid numeric escape: expected '{' after the radix prefix", m_loc);
     cp = '\b';
     
     return 1;
@@ -83,49 +82,51 @@ std::size_t StringLiteralParser::ProcessNumericEscape(char32_t& cp, const std::s
 
 std::size_t StringLiteralParser::ProcessNumericUCNEscape(char32_t& cp) {
     if (!m_source.HasRemaining(2) || PeekNext() != U'{') [[unlikely]]
-        throw "ECPP::LEXER::StringLiteralParser::ProcessNumericUCNEscape1";
+        BASIC::Fail("Invalid Unicode escape: expected '{' after '\\u'", m_loc);
     const char8_t* start = m_source.CurPtr() + 2;
     const std::size_t hex_length = BASIC::ScanNumeric(start, m_source.EndPtr(), 16);
     const char8_t* close = start + hex_length;
     if (close >= m_source.EndPtr() || *close != U'}') [[unlikely]]
-        throw "ECPP::LEXER::StringLiteralParser::ProcessNumericUCNEscape2";
+        BASIC::Fail("Unterminated Unicode escape: expected '}' after hexadecimal digits", m_loc);
     if (!hex_length) [[unlikely]]
-        throw "ECPP::LEXER::StringLiteralParser::ProcessNumericUCNEscape3";
+        BASIC::Fail("Invalid Unicode escape: expected at least one hexadecimal digit", m_loc);
     bool is_overflow = false;
     cp = BASIC::IntegerStringToNumeric(start, close, is_overflow, std::numeric_limits<char32_t>::max(), 16);
+    if (is_overflow)
+        BASIC::Fail("Unicode escape value exceeds the maximum supported Unicode code point", m_loc);
     return hex_length + 3;
 }
 
-char32_t StringLiteralParser::UnicodeNameToCodepoint(std::u8string_view name) const {
+char32_t StringLiteralParser::UnicodeNameToCodepoint(const std::u8string_view name) const {
     if (name.empty()) [[unlikely]]
-        throw "ECPP::LEXER::StringLiteralParser::UnicodeNameToCodepoint";
+        BASIC::Fail("Empty Unicode character name in escape sequence", m_loc);
     char32_t cp = 0;
     if (BASIC::UnicodeNameToCodepoint(name, cp))
         return cp;
-    throw "ECPP::LEXER::StringLiteralParser::UnicodeNameToCodepoint";
+    BASIC::Fail("Unknown Unicode character name", m_loc);
 }
 
 std::size_t StringLiteralParser::ProcessNameUCNEscape(char32_t& cp) {
     if (!m_source.HasRemaining(2) || PeekNext() != U'{') [[unlikely]] 
-        throw "ECPP::LEXER::StringLiteralParser::ProcessNameUCNEscape";
+        BASIC::Fail("Invalid Unicode name escape: expected '{' after '\\N'", m_loc);
     const char8_t* start = m_source.CurPtr() + 2;
     std::size_t name_length = BASIC::ScanWhile<[](const char8_t c){
         return BASIC::IsUnicodeNameChar(static_cast<char32_t>(c));
     }>(start, m_source.EndPtr());
     const char8_t* close = start + name_length;
     if (close >= m_source.EndPtr() || *close != U'}') [[unlikely]]
-        throw "ECPP::LEXER::StringLiteralParser::ProcessNumericUCNEscape2";
+        BASIC::Fail("Unterminated Unicode name escape: expected '}' after the character name", m_loc);
     std::u8string_view name{start, close};
     cp = UnicodeNameToCodepoint(name);
     return name_length + 3;
 }
 
 std::size_t StringLiteralParser::ProcessCharEscape(char32_t& cp) {
-    cp = GetEscapeChar(cp);
+    cp = GetEscapeChar(cp, m_loc);
     return 1;
 }
 
-std::size_t StringLiteralParser::ParserEscape() {
+std::size_t StringLiteralParser::ParseEscape() {
     std::size_t length = 0;
     char32_t cp = Peek(); 
     switch (cp) {

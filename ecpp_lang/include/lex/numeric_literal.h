@@ -16,30 +16,30 @@ class NumericLiteralParser {
         };
 
     public:
-        NumericLiteralParser(BASIC::UTFCursor<char8_t>& source, BASIC::Location loc, std::u8string_view& numeric_str, std::uint8_t& suffix, TokenType& type)
-            : m_source(source), m_loc(loc), m_str(numeric_str), m_suffix(suffix), m_type(type)
+        NumericLiteralParser(BASIC::UTFCursor<char8_t>& source, BASIC::Location loc, std::uint8_t& suffix, TokenType& type)
+            : m_source(source), m_loc(loc), m_suffix(suffix), m_type(type)
         {}
 
-        std::size_t ParseNumericLiteral(char32_t);
+        void ScanNumericSuffix();
+        std::size_t ScanPPNumber();
+        void ScanDigits(const NumericRadix);
+        NumericRadix DetectNumericRadix(const char32_t);
 
     private:
         char32_t Peek() const;
         char32_t PeekNext() const;
 
+        bool IsNondigit(char32_t) const noexcept;
         std::size_t ScanDigitSequence(NumericRadix);
-        NumericRadix DetectNumericRadix(const char32_t);
-        void ScanDigits(const NumericRadix);
         void ScanBinaryLiteral();
         void ScanLeadingZeroLiteral();
         void ScanDecimaLiteral();
         void ScanHexadecimalLiteral();
-        void ScanNumericSuffix();
 
     private:
+        TokenType& m_type;
         BASIC::Location m_loc;
         std::uint8_t& m_suffix;
-        TokenType& m_type;
-        std::u8string_view& m_str;
         BASIC::UTFCursor<char8_t>& m_source;
 };
 

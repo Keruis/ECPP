@@ -17,7 +17,6 @@ class StringLiteralParser {
     private:
         char32_t Peek() const;
         char32_t PeekNext() const;
-        char32_t PeekAt(const std::size_t) const;
 
         void AppendCodepoint(const char32_t);
         std::size_t GetEsacpeRadix(const char32_t) const noexcept;

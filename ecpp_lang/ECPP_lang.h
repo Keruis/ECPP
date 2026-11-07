@@ -11,7 +11,7 @@ namespace ECPP {
 class ECPP {
     public:
         void Test() {
-            std::u8string_view text = u8"0xAB.CDp-4f32";
+            std::u8string_view text = u8"8+1";
             BASIC::UTFCursor<char8_t> cursor{text};
             BASIC::Location location{};
             LEXER::Lexer lex{cursor, location};

@@ -106,7 +106,7 @@ bool NameToCodepoint(std::u8string_view name, char32_t& cp) {
         auto loose_node_name = LooseUnicodeName(node.name);
         if (!name.starts_with(loose_node_name)) {
             if (!node.has_sibling)
-                return false;;
+                return false;
             node_offset += node.size;
             continue;
         }

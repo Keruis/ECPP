@@ -1,4 +1,3 @@
-#include <cstddef>
 #include <lex/lex.h>
 
 #include <config.h>
@@ -78,6 +77,7 @@ void Lexer::SkipLineComment(BASIC::UTFChar c) {
         Advance(c);
         c = Peek();
     } while (!AtEnd() && !BASIC::IsHorizontalWhitespace(c.codepoint)); 
+    
     UpdatePostion();
 }
 
@@ -93,8 +93,10 @@ void Lexer::SkipBlockComment(BASIC::UTFChar c1, BASIC::UTFChar c2) {
         }
         Advance(c1);
     }
+    
     if (!closed) [[unlikely]]
         BASIC::Fail("Unterminated block comment: expected '*/' before end of input", m_location);
+        
     UpdatePostion();
 }
 
@@ -105,23 +107,29 @@ BASIC::UTFChar Lexer::SkipTrivia() {
             Advance(c1);
             continue;
         }
+        
         if (c1.codepoint != U'/')
             return c1;
+        
         BASIC::UTFChar c2 = PeekNext();
         if (c2.codepoint == U'/') {
             Advance(c1);
             SkipLineComment(c2);
             continue;
         }
+        
         if (c2.codepoint == U'*') {
             Advance(c1);
             Advance(c2);
             SkipBlockComment(c1, c2);
             continue;
         }
+        
         return c1;
     }
+    
     UpdatePostion();
+    
     return {0, 0};
 }
 
@@ -143,6 +151,7 @@ void Lexer::RepeatedCharOperator(const BASIC::UTFChar c) noexcept {
     char32_t next_char = 0;
     if (m_source.HasRemaining(2))
         next_char = PeekNext().codepoint;
+    
     const bool repeat = next_char == c.codepoint;
     const bool equals_suffix = next_char == U'=';
     const std::size_t offset = 1 + (repeat || equals_suffix);
@@ -183,6 +192,7 @@ void Lexer::Identifier(BASIC::UTFChar c) {
         Advance(c);
         c = Peek();
     } while (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint) || BASIC::IsXidContinue(c.codepoint));
+    
     std::u8string_view text{m_start, m_source.CurPtr()};
     auto type = FindKeyword(text);
     UpdateToken(
@@ -197,37 +207,46 @@ void Lexer::StringLiteral() {
     TokenType type = TokenType::LITERALS_STRING_VIEW;
     BASIC::UTFChar c{U'\"', 1};
     Advance(c);
+    
     while (!AtEnd()) {
         c = Peek();
         if (BASIC::IsVerticalWhitespace(c.codepoint)) [[unlikely]]
             BASIC::Fail("Unescaped newline in string literal", m_location);
+
         if (c.codepoint == U'"') {
             Advance(c);
             UpdateToken(
                 TokenClass::LITERAL,
                 type
             );
+            
             if (type == TokenType::LITERALS_STRING_VIEW)
                 m_tok.text = {m_start + 1, m_source.CurPtr() - 1};
+            
             return;
         }
+        
         if (c.codepoint == U'\\') {
             if (type == TokenType::LITERALS_STRING_VIEW)
                 str.assign(m_start + 1, m_source.CurPtr());
             type = TokenType::LITERALS_STRING;
+            
             Advance(c);
             if (AtEnd())
                 BASIC::Fail("Unterminated escape sequence in string literal", m_location);
             StringLiteralParser par{m_source, m_location, m_tok.str};
+            
             const std::size_t length = par.ParseEscape();
             AdvanceCursor(length);
             AdvanceColumn(length);
             continue;
         }
+        
         if (type == TokenType::LITERALS_STRING)
             str.append(m_source.CurPtr(), c.length);
         Advance(c);
     }
+    
     BASIC::Fail("Unterminated string literal: expected '\"' before end of input", m_location);
 }
 
@@ -235,11 +254,14 @@ void Lexer::CharLiteral() {
     Advance({'\'', 1});
     if (AtEnd())
         BASIC::Fail("Unterminated character literal: expected a character before end of input", m_location);
+    
     BASIC::UTFChar c = Peek();
     if (c.codepoint == U'\'')
         BASIC::Fail("Empty character literal: expected exactly one character", m_location);
+    
     if (BASIC::IsVerticalWhitespace(c.codepoint))
         BASIC::Fail("Unescaped newline in character literal", m_location);
+    
     if (c.codepoint == U'\\') {
         Advance(c);
         if (AtEnd())
@@ -247,12 +269,15 @@ void Lexer::CharLiteral() {
         c = Peek();
         m_tok.character = StringLiteralParser::GetEscapeChar(c.codepoint, m_location);
     } else m_tok.character = c.codepoint;
+    
     Advance(c);
     if (AtEnd())
         BASIC::Fail("Unterminated character literal: expected a closing quote before end of input", m_location);
+    
     c = Peek();
     if (c.codepoint != U'\'')
         BASIC::Fail("Invalid character literal: expected a closing quote after exactly one character", m_location);
+    
     Advance(c);
     UpdateToken(
         TokenClass::LITERAL,
@@ -261,14 +286,45 @@ void Lexer::CharLiteral() {
 }
 
 void Lexer::NumericLiteral(const BASIC::UTFChar c) {
-    NumericLiteralParser par{m_source, m_location, m_tok.text, m_tok.suffix, m_tok.type};
-    AdvanceColumn(par.ParseNumericLiteral(c.codepoint));
+    m_tok.text = {};
+    m_tok.suffix = 0;
+    m_tok.type = TokenType::LITERALS_INT;
+
+    NumericLiteralParser parser{
+        m_source,
+        m_location,
+        m_tok.suffix,
+        m_tok.type
+    };
+
+    const char8_t* const start = m_source.CurPtr();
+
+    const std::size_t pp_number_length = parser.ScanPPNumber();
+    if (!pp_number_length)
+        BASIC::Fail("Invalid preprocessing number", m_location);
+
+    const char8_t* const end = start + pp_number_length;
+
+    m_source.RetreatBytes(pp_number_length);
+
+    const auto radix = parser.DetectNumericRadix(c.codepoint);
+    parser.ScanDigits(radix);
+
+    m_tok.text = {start, m_source.CurPtr()};
+
+    parser.ScanNumericSuffix();
+
+    if (m_source.CurPtr() != end)
+        BASIC::Fail("Invalid numeric literal: unexpected characters", m_location);
+
+    AdvanceColumn(pp_number_length);
 }
 
 void Lexer::NextToken() {
     UpdatePostion();
     BASIC::UTFChar c = SkipTrivia();
     UpdatePostion();
+    
     if (AtEnd()) {
         UpdateToken( 
             TokenClass::UNEXPECTED_END,
@@ -314,6 +370,7 @@ void Lexer::NextToken() {
             if (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint))
                 return Identifier(c);
     }
+    
     if (m_source.HasRemaining(ScriptEndDelimiter.size())) {
         if (std::u8string_view{m_source.CurPtr(), ScriptEndDelimiter.size()} == ScriptEndDelimiter) {
             UpdateToken( 
@@ -324,6 +381,7 @@ void Lexer::NextToken() {
             return;
         }
     }
+
     BASIC::Fail(std::format("Unexpected character U+{:04X}", static_cast<std::uint32_t>(c.codepoint)), m_location);
 }
 

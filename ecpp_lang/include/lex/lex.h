@@ -13,7 +13,7 @@ class Lexer {
 
         void NextToken();
         const Token& RefTok() const noexcept;
-        const BASIC::Location& Location() const noexcept;
+        const BASIC::Location Location() const noexcept;
 
     private:
         bool AtEnd() const noexcept;

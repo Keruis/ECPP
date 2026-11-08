@@ -2,6 +2,7 @@
 
 #include <basic/location.h>
 #include <lex/token_kind.h>
+#include <basic/source/source_range.h>
 
 #include <string>
 #include <string_view>
@@ -73,13 +74,12 @@ enum class TokenType : std::uint8_t {
 
     LITERALS_CHARACTER = 226,
 
-    UNEXPECTED_END = 254,
     END = 255
 };
 
 struct Token {
-    TokenClass cls = TokenClass::UNEXPECTED_END;
-    TokenType type = TokenType::UNEXPECTED_END;
+    TokenClass cls = TokenClass::END;
+    TokenType type = TokenType::END;
 
     std::u8string str{};
     std::u8string_view text{};
@@ -88,7 +88,7 @@ struct Token {
 
     char32_t character{};
 
-    std::size_t length{};
+    BASIC::SourceRange m_source_range{};
 };
 
 }

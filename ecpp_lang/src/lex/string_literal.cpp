@@ -41,18 +41,6 @@ char32_t StringLiteralParser::GetEscapeChar(const char32_t cp, const BASIC::Loca
         simple-escape-sequence:
             one of
             \\ \' \" \a \e \E \f \n \r \t
-
-        escape-character:
-            \\  -> backslash
-            \'  -> single quotation mark
-            \"  -> double quotation mark
-            \a  -> alert
-            \e  -> escape
-            \E  -> escape
-            \f  -> form feed
-            \n  -> line feed
-            \r  -> carriage return
-            \t  -> horizontal tab
     */
     switch (cp) {
         case U'\\': case U'\'':

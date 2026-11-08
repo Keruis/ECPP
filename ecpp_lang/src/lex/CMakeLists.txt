@@ -1,6 +1,5 @@
-set(LEX_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/lex.cpp" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/string_literal.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/numeric_literal.cpp"
-    PARENT_SCOPE
+target_sources(ecpp_lang PRIVATE
+    lex.cpp
+    string_literal.cpp
+    numeric_literal.cpp
 )

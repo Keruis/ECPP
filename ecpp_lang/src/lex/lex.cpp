@@ -15,7 +15,7 @@ const Token& Lexer::RefTok() const noexcept {
     return m_tok;
 }
 
-const BASIC::Location& Lexer::Location() const noexcept {
+const BASIC::Location Lexer::Location() const noexcept {
     return m_location;
 }
 
@@ -69,7 +69,10 @@ void Lexer::UpdateToken(const TokenClass cls, const TokenType type, const std::u
     m_tok.cls = cls;
     m_tok.type = type;
     m_tok.text = text;
-    m_length = m_source.CurPtr() - m_start;
+    m_tok.m_source_range = {
+        static_cast<std::size_t>(m_start - m_source.StartPtr()), 
+        static_cast<std::size_t>(m_source.CurPtr() - m_start)
+    };
 }
 
 void Lexer::SkipLineComment(BASIC::UTFChar c) {
@@ -188,10 +191,22 @@ TokenType Lexer::FindKeyword(const std::u8string_view text) const noexcept {
 }
 
 void Lexer::Identifier(BASIC::UTFChar c) {
+    /*
+        identifier:
+            identifier-start
+            identifier identifier-continue
+        
+        identifier-start:
+            _
+            XID_start
+
+        identifier identifier-continue:
+            XID_continue
+    */
     do {
         Advance(c);
         c = Peek();
-    } while (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint) || BASIC::IsXidContinue(c.codepoint));
+    } while (BASIC::IsXidStart(c.codepoint) || BASIC::IsXidContinue(c.codepoint));
     
     std::u8string_view text{m_start, m_source.CurPtr()};
     auto type = FindKeyword(text);
@@ -207,7 +222,21 @@ void Lexer::StringLiteral() {
     TokenType type = TokenType::LITERALS_STRING_VIEW;
     BASIC::UTFChar c{U'\"', 1};
     Advance(c);
-    
+    /*
+        string-literal:
+            " s-char-sequence_opt "
+
+        s-char-sequence:
+            s-char
+            s-char-sequence s-char
+
+        s-char:
+            basic-s-char
+            escape-sequence
+
+        basic-s-char:
+            {τ(c)  |  c∈Z, 0≤c≤0x10FFFF, c∉[0xD800,0xDFFF], c∉{0x000A,0x0022,0x005C}}
+    */
     while (!AtEnd()) {
         c = Peek();
         if (BASIC::IsVerticalWhitespace(c.codepoint)) [[unlikely]]
@@ -251,6 +280,14 @@ void Lexer::StringLiteral() {
 }
 
 void Lexer::CharLiteral() {
+    /*
+        character-literal:
+            ' c-char '
+
+        c-char:
+            basic-s-char
+            escape-sequence
+    */
     Advance({'\'', 1});
     if (AtEnd())
         BASIC::Fail("Unterminated character literal: expected a character before end of input", m_location);
@@ -286,8 +323,6 @@ void Lexer::CharLiteral() {
 }
 
 void Lexer::NumericLiteral(const BASIC::UTFChar c) {
-    m_tok.text = {};
-    m_tok.suffix = 0;
     m_tok.type = TokenType::LITERALS_INT;
 
     NumericLiteralParser parser{
@@ -300,8 +335,6 @@ void Lexer::NumericLiteral(const BASIC::UTFChar c) {
     const char8_t* const start = m_source.CurPtr();
 
     const std::size_t pp_number_length = parser.ScanPPNumber();
-    if (!pp_number_length)
-        BASIC::Fail("Invalid preprocessing number", m_location);
 
     const char8_t* const end = start + pp_number_length;
 
@@ -327,7 +360,7 @@ void Lexer::NextToken() {
     
     if (AtEnd()) {
         UpdateToken( 
-            TokenClass::UNEXPECTED_END,
+            TokenClass::END,
             TokenType::END
         );
         m_length = 0;
@@ -369,17 +402,6 @@ void Lexer::NextToken() {
         default:
             if (c.codepoint == U'_' || BASIC::IsXidStart(c.codepoint))
                 return Identifier(c);
-    }
-    
-    if (m_source.HasRemaining(ScriptEndDelimiter.size())) {
-        if (std::u8string_view{m_source.CurPtr(), ScriptEndDelimiter.size()} == ScriptEndDelimiter) {
-            UpdateToken( 
-                TokenClass::END,
-                TokenType::END
-            );
-            m_length = 0;
-            return;
-        }
     }
 
     BASIC::Fail(std::format("Unexpected character U+{:04X}", static_cast<std::uint32_t>(c.codepoint)), m_location);

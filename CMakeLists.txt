@@ -6,13 +6,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL
     "Generate compile_commands.json"
 )
 
-add_subdirectory(lib)
-add_subdirectory(ecpp_lang)
+add_subdirectory(ECPP)
 
 add_executable(ECPP
-    ECPP.cpp
+    main.cpp
+)
+
+set_target_properties(ECPP PROPERTIES
+    OUTPUT_NAME "ecpp"
 )
 
 target_link_libraries(ECPP PRIVATE
-    ECPP::lang
+    ecpp
 )
